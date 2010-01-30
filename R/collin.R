@@ -1,22 +1,73 @@
+## =============================================================================
+## Utility functions
+## =============================================================================
+
 ## -----------------------------------------------------------------------------
-## Collinearity indices
+## combinations of n elements from a vector p (length (p) > = n)
 ## -----------------------------------------------------------------------------
+combin <- function(n, v) {
+  if (n == 1)
+    matrix(data = v, ncol = 1)
+  else if (n >= length(v))
+    matrix(data = v, nrow = 1)
+  else
+    rbind(cbind(v[1], combin(n-1, v[-1])), combin(n, v[-1]))
+}
+
+## -----------------------------------------------------------------------------
+## Function to generate collinearities
+## for a given set of parameter combinations (cc)
+## -----------------------------------------------------------------------------
+
+collFun <- function(cc, normSens, npar, iNa) {
+  Collset <- NULL
+
+  for (i in 1:nrow(cc)) {  # for each parameter combination
+    ii    <- cc[i,]          # vector with parameters in set
+    S     <- normSens[,ii]   # select relevant columns of sensitivity functions
+
+    Nident <- (iNa != 0 & iNa %in% ii)  # Is it nonidentifiable?.
+
+    if (Nident) {
+        id <- Inf
+    } else {
+        id  <- 1 / sqrt(min(eigen(t(S) %*% S)$value)) # collinearity
+    }
+
+    # output: psub= whether par is in (1) set or not (0), n= number of
+    # parameters, id = the collinearity value
+    psub     <- rep(0, npar)
+    psub[ii] <- 1
+    n        <- ncol(cc)
+    Collset  <- rbind(Collset, c(psub, n, id))
+  }
+  return(Collset)
+}
+
+## =============================================================================
+## Main function: Collinearity indices
+## =============================================================================
 
 collin <- function(sensfun, parset = NULL, N = NULL, which = NULL) {
 
-  if (is.null(colnames(sensfun)))colnames(sensfun) <- 1:ncol(sensfun)
+  #-----------------
+  # 1. check input
+  if (is.null(colnames(sensfun)))
+    colnames(sensfun) <- 1:ncol(sensfun)
 
+  #-----------------
+  # 2. If observed *variables* are specified ..
   if (!is.null(which)) {
     nx  <- attr(sensfun, "nx")
     var <- attr(sensfun, "var")
     TYP <- attr(sensfun, "Type")
 
-    if (! is.numeric(which)) {
+    if (! is.numeric(which)) { #.. by name
       ln <- length(which)
       Select <- which (var %in% which)
       if(length(Select) != ln)
         stop("not all variables in 'which' are in 'sensfun'")
-    } else {
+    } else {                   #.. by value
        Select <- which
        if (max(Select) > nx)
          stop("index in 'which' too large")
@@ -24,76 +75,60 @@ collin <- function(sensfun, parset = NULL, N = NULL, which = NULL) {
     ii <- NULL
 
     if (TYP == 1)
-     for (i in Select)   ii <- c(ii, ((i-1)*nx):(i*nx))
+      for (i in Select)  ii <- c(ii, ((i-1)*nx):(i*nx))
     else
       for (i in Select)  ii <- c(ii, (nx[i]+1):nx[i+1])
+    # select relevant part of sensitivity functions
     sensfun <- sensfun[ii,]
   }
 
+  # cleanup
   if (colnames(sensfun)[1]=="x" && colnames(sensfun)[2] == "var")
     Sens <- sensfun[,-(1:2)]
-  else Sens <- sensfun
+  else
+    Sens <- sensfun
 
   npar <- ncol(Sens)
   L2   <- sqrt(colSums(Sens*Sens))
 
   iNa <- 0
-  ## Check for non-identifiable parameters
+  # Check for non-identifiable parameters
   if (any(L2 == 0 ) ) {
     iNa <- which(L2 == 0)
     warning (paste("Sensitivity of parameter", colnames(Sens)[iNa], "is 0! "))
   }
+
+  # check if work requested not too large...
   if (npar > 14 & is.null(parset) & is.null(N))
     warning ("will reduce collinearity estimates: too many combinations")
 
+  # normalise sensitivity functions
   normSens <- t(t(Sens) / L2)
 
-  Collin <- NULL
-  ## internal function to generate collinearities
-  ## for a given set of parameter combinations
 
-  collFun <- function(cc) {
-    Collset <- NULL
-    for (i in 1:nrow(cc)) {
-      ii    <- cc[i,]
-      S     <- normSens[,ii]
-      Nident <- (iNa != 0 & iNa %in% ii)
-      if (Nident) {
-        id <- Inf
-      } else {
-        id  <- 1/sqrt(min(eigen(t(S) %*% S)$value))
-      }
-      psub     <- rep(0, npar)
-      psub[ii] <- 1
-      n        <- ncol(cc)
-      Collset <- rbind(Collset, c(psub, n, id))
-    }
-    return(rbind(Collin, Collset))
-  }
-  if (is.null(parset)) {
+  Collin <- NULL      # Will contain the collinearity coefficients
 
-    combin <- function(n, v) { # combinations of n elements from a vector p (length (p) > = n)
-      if (n == 1)
-        matrix(data = v, ncol = 1)
-      else if (n >= length(v))
-        matrix(data = v, nrow = 1)
-      else
-        rbind(cbind(v[1], combin(n-1, v[-1])), combin(n, v[-1]))
-    }
-
+  if (is.null(parset)) {   # parameter combination not given, but the number of params
     pset   <- 1:npar
-    if (is.null(N)) nset <- 2:npar else nset <- N
+
+    if (is.null(N))        # All parameter combination (from 2 to total number)
+      nset <- 2:npar
+    else                   # only given number of parameters
+      nset <- N
+
     for (n in nset) {
-      numcomb <- choose(npar, n)
+      numcomb <- choose(npar, n) # number of combinations requested
       if (numcomb < 5000) {
-        cc  <- combin(n, pset)
-        Collin <- collFun(cc)
+        cc  <- combin(n, pset)   # all combinations of n pars from pset.
+        # collinearity of the parameter sets in cc
+        Collin <- rbind(Collin, collFun(cc, normSens, npar, iNa))
       }
     }
-  } else {
+  } else {                 # parameter combination specified ..
     if (! is.vector(parset))
       stop("'parset' should be a vector")
-    if (is.character(parset)) {
+
+    if (is.character(parset)) {  #.. if by name: find indices
       ln <- length(parset)
       pnames<-colnames(Sens)
       parset <- which(pnames %in% parset)
@@ -102,7 +137,7 @@ collin <- function(sensfun, parset = NULL, N = NULL, which = NULL) {
     }
 
     parset <- matrix(data = parset, nrow = 1)
-    Collin <- collFun(parset)
+    Collin <- rbind(Collin, collFun(parset, normSens, npar, iNa))
   }
 
   Collin <- as.data.frame(Collin)

@@ -29,11 +29,11 @@ Norm(parMean, parCovar, parRange = NULL, num)
 
 \details{
   Function \code{Norm}, draws parameter sets from a multivariate normal
-  distribution, as specified through the mean value and the variance-covariance
-  matrix of the parameters. In addition, it is possible to impose a minimum and
-  maximum of each parameter, via \code{parRange}. This will generate a
-  truncated distribution.
-  Use this for instance if certain parameters cannot become negative.
+  distribution, as specified through the mean value and the
+  variance-covariance matrix of the parameters. In addition, it is
+  possible to impose a minimum and maximum of each parameter, via
+  \code{parRange}. This will generate a truncated distribution.  Use
+  this for instance if certain parameters cannot become negative.
 }
 
 \note{

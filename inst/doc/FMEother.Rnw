@@ -20,13 +20,15 @@
 \newcommand{\rs}{\textbf{\textsf{rootSolve }}}
 \newcommand{\R}{\proglang{R}}
 
-\title{\proglang{R}-package \fme: inverse modelling, sensitivity,
-  Monte Carlo - applied to a nonlinear model}
+\title{\proglang{R}-Package \fme: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Nonlinear Model}
 
-\Shorttitle{\fme: inverse modelling, sensitivity, Monte Carlo -
-  applied to a nonlinear model}
+\Plaintitle{R~Package FME: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Nonlinear Model}
 
-\Plaintitle{FME}
+\Shorttitle{\fme --  Inverse Modelling, Sensitivity, Monte Carlo With
+  a Nonlinear Model}
+
 
 \Keywords{steady-state models, differential equations, fitting,
   sensitivity, Monte Carlo, identifiability, \proglang{R}}
@@ -74,7 +76,7 @@ implementation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
 %% need no \usepackage{Sweave}
-%\VignetteIndexEntry{Sensitivity, calibration, identifiability, Monte Carlo analysis of a nonlinear model}
+%\VignetteIndexEntry{4. Sensitivity, Calibration, Identifiability, Monte Carlo Analysis of a Nonlinear Model}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
 \begin{document}
@@ -90,7 +92,9 @@ options(width=70)
 \maketitle
 
 \section{Fitting a Monod function}
-\subsection{the model}
+
+\subsection{The model}
+
 This example is discussed in \citep{Laine}
 (who quotes Berthoux and Brown, 2002. Statistics for environmental engineers, CRC Press).
 
@@ -102,7 +106,8 @@ y=\theta_1 \cdot \frac{x}{x+\theta_2}+\epsilon\\
 
 is fitted to data.
 
-\subsection{implementation in R}
+\subsection{Implementation in R}
+
 <<>>=
 require(FME)
 @
@@ -290,6 +295,7 @@ points(Obs)
   - see text for \R-code}
 \label{fig:Monsum2}
 \end{figure}
+
 \subsection{Predictive inference including also measurement error}
 
 There is an other source of error, which is not captured by the
@@ -333,7 +339,8 @@ noise - see text for \R-code}
 \label{fig:MonsumM}
 \end{figure}
 
-\section{finally}
+\section{Finally}
+
 This vignette was made with Sweave \citep{Leisch02}.
 
 \bibliography{vignettes}

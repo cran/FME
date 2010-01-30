@@ -20,13 +20,15 @@
 \newcommand{\rs}{\textbf{\textsf{rootSolve }}}
 \newcommand{\R}{\proglang{R}}
 
-\title{\proglang{R}-package \fme: inverse modelling, sensitivity,
-  Monte Carlo - applied to a steady-state model}
+\title{\proglang{R}~Package \fme: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Steady-State Model}
 
-\Shorttitle{\fme: inverse modelling, sensitivity,
-  Monte Carlo - applied to a steady-state model}
+\Plaintitle{R~package FME: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Steady-State Model}
 
-\Plaintitle{FME}
+\Shorttitle{\fme -- Inverse Modelling, Sensitivity,
+  Monte Carlo with a Steady-State Model}
+
 
 \Keywords{steady-state models, differential equations, fitting,
   sensitivity, Monte Carlo, identifiability, \proglang{R}}
@@ -75,7 +77,7 @@ implementation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
 %% need no \usepackage{Sweave}
-%\VignetteIndexEntry{Sensitivity, calibration, identifiability, Monte Carlo analysis of a steady-state model}
+%\VignetteIndexEntry{5. Sensitivity, Calibration, Identifiability, Monte Carlo Analysis of a Steady-State Model}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
 \begin{document}

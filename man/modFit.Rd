@@ -37,32 +37,36 @@
                \dots)
 }
 \arguments{
-  \item{f }{a function to be minimized, with first argument the vector of
-    parameters over which minimization is to take place. It should return
-    either a vector of \emph{residuals} (of model versus data) or an element
-    of class \emph{modCost} (as returned by a call to \code{\link{modCost}}.
+  \item{f }{a function to be minimized, with first argument the vector
+    of parameters over which minimization is to take place. It should
+    return either a vector of \emph{residuals} (of model versus data) or
+    an element of class \emph{modCost} (as returned by a call to
+    \code{\link{modCost}}.
   }
   \item{p }{initial values for the parameters to be optimized over.
   }
-  \item{...}{additional arguments passed to function \code{f} (modFit) or passed
-    to the methods.
+
+  \item{...}{additional arguments passed to function \code{f} (modFit)
+    or passed to the methods.
   }
+  
   \item{lower }{lower bounds on the parameters; if unbounded set equal to
     \code{-Inf}.
   }
   \item{upper }{upper bounds on the parameters; if unbounded set equal to
     \code{Inf}.
   }
-  \item{method }{The method to be used, one of "Marq","Port","Newton",
+  \item{method }{The method to be used, one of "Marq", "Port", "Newton",
     "Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN", "Pseudo" - see details.
   }
-  \item{jac }{A function that calculates the Jacobian; it should be called as
-    jac(x,...) and return the matrix with derivatives of the model residuals
-    as a function of the parameters. Supplying the Jacobian can substantially
-    improve performance; see last example.
+  \item{jac }{A function that calculates the Jacobian; it should be
+    called as \code{jac(x, ...)} and return the matrix with derivatives
+    of the model residuals as a function of the parameters. Supplying
+    the Jacobian can substantially improve performance; see last
+    example.
   }
-  \item{hessian }{\code{TRUE} if Hessian is to be estimated. Note that, if set to
-    \code{FALSE}, then a summary cannot be estimated.
+  \item{hessian }{\code{TRUE} if Hessian is to be estimated. Note that,
+    if set to \code{FALSE}, then a summary cannot be estimated.
   }
   \item{control }{additional control arguments passed to the optimisation
     routine - see details of \code{\link[minpack.lm]{nls.lm}} ("Marq"),
@@ -107,7 +111,7 @@
   }
   \item{var_ms }{the weighted and scaled variable mean squared residuals,
     one value per observed variable; only when \code{f}
-    returns an element of class \emph{modCost} ; \code{NA} otherwise.
+    returns an element of class \emph{modCost}; \code{NA} otherwise.
   }
   \item{var_ms_unscaled }{the weighted, but not scaled variable mean
     squared residuals
@@ -121,17 +125,18 @@
   Note: this means that some return arguments of the original
   optimisation functions are renamed.
   
-  More specifically, "objective" and "counts" from routine  \code{\link{nlminb}}
-  (method=Port) are renamed; "value" and "counts"; "niter" and "minimum"
-   from routine  \code{\link[minpack.lm]{nls.lm}} (method=Marq)
-   are renamed; "counts" and "value"; "minimum" and "estimate" from routine
-   \code{\link{nlm}} (\code{method = Newton})
-   are renamed.
+  More specifically, "objective" and "counts" from routine
+  \code{\link{nlminb}} (method = "Port") are renamed; "value" and
+  "counts"; "niter" and "minimum" from routine
+  \code{\link[minpack.lm]{nls.lm}} (method=Marq) are renamed; "counts"
+  and "value"; "minimum" and "estimate" from routine \code{\link{nlm}}
+  (\code{method = "Newton"}) are renamed.
 
-  The list returned by \code{modFit} has a method for the generic functions
-  \code{\link{summary}},\code{\link{deviance}},\code{\link{coef}},
-  \code{\link{residuals}},\code{\link{df.residual}} and \code{print.summary}
-  - see note.
+  The list returned by \code{modFit} has a method for the 
+  \code{\link{summary}}, \code{\link{deviance}}, \code{\link{coef}},
+  \code{\link{residuals}}, \code{\link{df.residual}} and
+  \code{print.summary} -- see note.
+  
 }
 
 \details{
@@ -159,24 +164,25 @@
       (see \code{\link{pseudoOptim}}).
   }
 
-  For difficult problems it may be efficient to perform some iterations with
-  \code{Pseudo}, which will bring the algorithm near the vicinity of a
-  (the) minimum, after which the default algorithm (\code{Marq}) is used to
-  locate the minimum more precisely.
+  For difficult problems it may be efficient to perform some iterations
+  with \code{Pseudo}, which will bring the algorithm near the vicinity
+  of a (the) minimum, after which the default algorithm (\code{Marq}) is
+  used to locate the minimum more precisely.
 
-  The implementation for the routines from \code{\link{optim}} differs from
-  \code{\link{constrOptim}} which implements an adaptive barrier algorithm and
-  which allows a more flexible implementation of linear constraints.
+  The implementation for the routines from \code{\link{optim}} differs
+  from \code{\link{constrOptim}} which implements an adaptive barrier
+  algorithm and which allows a more flexible implementation of linear
+  constraints.
 
-  In \code{modFit}, bounds on parameters are imposed by a transformation of the
-  parameters to be fitted.
+  In \code{modFit}, bounds on parameters are imposed by a transformation
+  of the parameters to be fitted.
 
-  In case \emph{both lower and upper bounds} are specified, this is achieved by
-  a tangens and arc tangens transformation.
+  In case \emph{both lower and upper bounds} are specified, this is
+  achieved by a tangens and arc tangens transformation.
 
-  This is, parameter values, \eqn{p'}, generated by the optimisation routine, and
-  which are located in the range [-Inf, Inf] are transformed, before they are
-  passed to \code{f} as:
+  This is, parameter values, \eqn{p'}, generated by the optimisation
+  routine, and which are located in the range [-Inf, Inf] are
+  transformed, before they are passed to \code{f} as:
 
    \deqn{p = (upper + lower)/2 + (upper - lower) \cdot \arctan(p')/\pi}{%
         p = 1/2 * (upper + lower) + (upper - lower) * arctan(p')/pi}.
@@ -195,8 +201,8 @@
 
   In case parameters are transformed (all methods) or in case the
   \code{method} \code{Port}, \code{Pseudo} or \code{Marq} is selected,
-  the \emph{Hessian} is approximated as \eqn{2*J^T*J}, where J is the Jacobian,
-  estimated by finite differences.
+  the \emph{Hessian} is approximated as \eqn{2 \cdot J^T \cdot J}{2 * J^T * J}, 
+  where J is the Jacobian, estimated by finite differences.
 
   This ignores the second derivative terms, but this is reasonable if the method
   has truly converged to the minimum.
@@ -205,7 +211,7 @@
 
   In case the Levenberg-Marquard method (\code{Marq}) is used, and parameters
   are not transformed, 0.5 times the Hessian of the least squares problem is
-  returned by \code{nls.lm}, the original marquardt algorithm. To make it
+  returned by \code{nls.lm}, the original Marquardt algorithm. To make it
   compatible, this value is multiplied with 2 and the TRUE Hessian is thus
   returned by \code{modFit}.
 }
@@ -217,7 +223,7 @@
   treated as if it were a linear least squares problem, linearizing around
   the parameter values that minimize \eqn{Chi^2}.
 
-  The covariance matrix is estimated as \eqn{1/(0.5*Hessian)}.
+  The covariance matrix is estimated as \eqn{1/(0.5 \cdot Hessian)}{1/(0.5*Hessian)}.
 
   This computation relies on several things, i.e.:
 
@@ -272,12 +278,12 @@ K     <- 100
 
 ## perturbed analytical solution
 Data <- data.frame(
-          time = TT,
-          N = K / (1+(K/N0-1) * exp(-r*TT)) * (1 + rnorm(length(TT), sd = 0.01))
-        )
+  time = TT,
+     N = K / (1+(K/N0-1) * exp(-r*TT)) * (1 + rnorm(length(TT), sd = 0.01))
+)
 
-plot(TT, Data[,"N"], ylim=c(0, 120), pch=16, col="red",
-     main = "logistic growth", xlab="time", ylab="N")
+plot(TT, Data[,"N"], ylim = c(0, 120), pch = 16, col = "red",
+  main = "logistic growth", xlab = "time", ylab = "N")
 
 
 ##===================================
@@ -296,7 +302,7 @@ lines(TT, model(parms, TT), lwd = 2,col = "green")
 
 ## FITTING algorithm 1
 ModelCost <- function(P) {
- out <- model(P,TT)
+ out <- model(P, TT)
  return(Data$N-out)  # residuals
 }
 
@@ -324,14 +330,16 @@ ModelCost2 <- function(P) {
  return(modCost(out, Data))  # object of class modCost
 }
 
-Fit <- modFit(f=ModelCost2,p=parms,lower=rep(0,3),upper=c(5,150,10))
+Fit <- modFit(f = ModelCost2, p = parms, lower = rep(0, 3),
+  upper = c(5, 150, 10))
 
-out <- ode(y=c(N=Fit$par[["N0"]]),func=logist,parms=Fit$par,times=times)
+out <- ode(y = c(N = Fit$par[["N0"]]), func = logist, parms = Fit$par,
+  times = times)
 
-lines(out,col="red",lty=2)
-legend("right",c("data","original","fitted analytical","fitted numerical"),
-       lty=c(NA,1,1,2),lwd=c(NA,2,2,1),col=c("red","green","blue","red"),
-       pch=c(16,NA,NA,NA))
+lines(out, col = "red", lty = 2)
+legend("right", c("data", "original", "fitted analytical", "fitted numerical"),
+       lty = c(NA, 1, 1, 2), lwd = c(NA, 2, 2, 1),
+       col = c("red", "green", "blue", "red"), pch = c(16, NA, NA, NA))
 summary(Fit)
 plot(residuals(Fit))
 
@@ -340,7 +348,7 @@ plot(residuals(Fit))
 ## =======================================================================
 
 ## We use modFit to solve a set of linear equations
-A <- matrix(nr=30,nc=30,runif(900))
+A <- matrix(nr = 30, nc = 30, runif(900))
 X <- runif(30)
 B <- A \%*\% X
 
@@ -348,24 +356,24 @@ B <- A \%*\% X
 
 ## Function that returns the vector of residuals
 FUN <- function(x)
-  as.vector(A \%*\%x - B)
+  as.vector(A \%*\% x - B)
 
 ## Function that returns the Jacobian
 JAC <- function(x) A
 
 ## The port algorithm
-print(system.time(mf <- modFit(f=FUN,p=runif(30),method="Port")))
-print(system.time(mf <- modFit(f=FUN,p=runif(30),method="Port",jac=JAC)))
-max(abs(mf$par-X))  # should be very small
+print(system.time(mf <- modFit(f=FUN, p=runif(30), method="Port")))
+print(system.time(mf <- modFit(f=FUN, p=runif(30), method="Port", jac=JAC)))
+max(abs(mf$par - X))  # should be very small
 
 ## BFGS
-print(system.time(mf <- modFit(f=FUN,p=runif(30),method="BFGS")))
-print(system.time(mf <- modFit(f=FUN,p=runif(30),method="BFGS",jac=JAC)))
-max(abs(mf$par-X))
+print(system.time(mf <- modFit(f=FUN, p=runif(30), method="BFGS")))
+print(system.time(mf <- modFit(f=FUN, p=runif(30), method="BFGS", jac=JAC)))
+max(abs(mf$par - X))
 
 ## Levenberg-Marquardt
-print(system.time(mf <- modFit(f=FUN,p=runif(30),jac=JAC)))
-max(abs(mf$par-X))
+print(system.time(mf <- modFit(f=FUN, p=runif(30), jac=JAC)))
+max(abs(mf$par - X))
 }
 \author{
   Karline Soetaert <k.soetaert@nioo.knaw.nl>,
@@ -374,10 +382,19 @@ max(abs(mf$par-X))
 }
 \references{
   Press, W. H.,  Teukolsky, S. A., Vetterling, W. T. and
-  Flannery, B. P. (2007) Numerical Recipes in C. Cambridge
+  Flannery, B. P., 2007. Numerical Recipes in C. Cambridge
   University Press.
 
+  Gay, D. M., 1990. Usage Summary for Selected Optimization Routines.
+  Computing Science Technical Report No. 153. AT&T Bell Laboratories,
+  Murray Hill, NJ 07974.
   \url{http://netlib.bell-labs.com/cm/cs/cstr/153.pdf}
+  
+  Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity
+  and Monte Carlo Analysis in R Using Package FME.  Journal of
+  Statistical Software 33(3) 1--28.
+  \url{http://www.jstatsoft.org/v33/i03}
+
 }
 \keyword{utilities}
 

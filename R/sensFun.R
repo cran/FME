@@ -32,7 +32,7 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
     yRef <- matrix(data=yRef, nrow = 1)
     colnames(yRef) <- ynames
   }
-  
+
   ## 2. sensitivity variables
   if (is.null(sensvar)) {
     ivar <- 1:ncol(yRef)
@@ -57,24 +57,24 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
   else {
     mname <- colnames(yRef)[map]
     if (is.null(mname)) mname <- "x"
-    map <- yRef[,map]
+    map <- yRef[, map]
   }
 
   nout  <- length(ivar)
   ndim  <- nrow(yRef)
   if (Type == 1)
-    grvar <- expand.grid(map,sensvar)
+    grvar <- expand.grid(map, sensvar)
   else grvar<-data.frame(x = map, var = ynames)
 
   if (ndim ==1)
     svar <- sensvar
-  else svar <- paste(grvar[,2], grvar[,1], sep = "")
+  else svar <- paste(grvar[, 2], grvar[, 1], sep = "")
 
-  yRef <- as.vector(yRef[,ivar])
+  yRef <- as.vector(yRef[, ivar])
 
   if (is.null(senspar))
     senspar <- 1:length(parms)
-    
+
   ## 3. sensitivity parameters/
   npar  <- length(senspar)
   if (npar == 0)
@@ -98,8 +98,8 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
   else varscale <- rep (varscale, length(yRef))
 
   ## 0 is set equal to a very small number
-  varscale[varscale == 0] <- 1e-20
-  parscale[parscale == 0] <- 1e-20
+  varscale[varscale == 0] <- tiny*1e-12
+  parscale[parscale == 0] <- tiny*1e-12
 
   Sens    <- matrix(data=NA, nrow = length(yRef), ncol = npar)
 
@@ -110,14 +110,14 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
     Yres    <- Solve(parms)
     if (is.vector(Yres))
       yPert <- Yres[ivar]
-    else yPert <- as.vector(unlist(Yres[,ivar]))
-    Sens[,i] <- (yPert-yRef)/dp[i] * parscale[i] /varscale
+    else yPert <- as.vector(unlist(Yres[, ivar]))
+    Sens[, i] <- (yPert-yRef)/dp[i] * parscale[i] /varscale
     parms[ipar[i]] <- pp[i]
   }
 
   ## 6. Finally
   colnames(Sens) <- names(pp)
-  Sens <- data.frame(x = grvar[,1], var = as.character(grvar[,2]), Sens)
+  Sens <- data.frame(x = grvar[, 1], var = as.character(grvar[, 2]), Sens)
   attr(Sens, "class") <- c("sensFun", "data.frame")
   attr(Sens, "pars") <- pp
   attr(Sens, "parscale") <- parscale
@@ -139,22 +139,22 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
 ## S3 methods of sensFun
 ## -----------------------------------------------------------------------------
 
-summary.sensFun <- function(object,vars=FALSE,...) {
+summary.sensFun <- function(object, vars=FALSE, ...) {
 
   pp       <- attributes(object)$pars
   parscale <-  attributes(object)$parscale
-  Sens <- object[,-(1:2)]
+  Sens <- object[, -(1:2)]
   nout <- nrow(Sens)
   if (vars) { # summaries per variable
-    Vars <- object[,2]
+    Vars <- object[, 2]
     out <- data.frame(
-         L1  =unlist(aggregate(abs(Sens), by = list(Vars), FUN = mean)[,-1]),
-         L2  =unlist(aggregate(Sens*Sens, by = list(Vars), FUN = sum)[,-1]),
-         Mean=unlist(aggregate(Sens, by = list(Vars), FUN = mean)[,-1]),
-         Min =unlist(aggregate(Sens, by = list(Vars), FUN = min)[,-1]),
-         Max =unlist(aggregate(Sens, by = list(Vars), FUN = max)[,-1]),
-         N   =unlist(aggregate(Sens, by = list(Vars), FUN = length)[,-1])
-      )
+      L1   = unlist(aggregate(abs(Sens), by = list(Vars), FUN = mean)[, -1]),
+      L2   = unlist(aggregate(Sens*Sens, by = list(Vars), FUN = sum)[, -1]),
+      Mean = unlist(aggregate(Sens, by = list(Vars), FUN = mean)[, -1]),
+      Min  = unlist(aggregate(Sens, by = list(Vars), FUN = min)[, -1]),
+      Max  = unlist(aggregate(Sens, by = list(Vars), FUN = max)[, -1]),
+      N    = unlist(aggregate(Sens, by = list(Vars), FUN = length)[, -1])
+    )
     out$L2 <- sqrt(out$L2/out$N)
     out$var <- unique(Vars)
     np <- length(pp)
@@ -202,7 +202,8 @@ pairs.sensFun <- function (x, which = NULL, ...) {
         ij <- c(ij, rep(i, length(In)))
         ii <- c(ii, In)
       }
-      else  for (i in Select) {
+    else
+      for (i in Select) {
         In <- (nx[i] + 1):nx[i + 1]
         ij <- c(ij,rep(i,length(In)))
         ii <- c(ii,In)
@@ -210,14 +211,15 @@ pairs.sensFun <- function (x, which = NULL, ...) {
     if(!is.null(dots$bg)) dots$bg <- dots$bg[ij]
     if(is.null(dots$col)) dots$col <- (1:Nr)[ij]
     else dots$col <- dots$col[ij]
-    }
-
-  else {ii <- 1:nrow(x)
-        ij <- rep(1, nrow(x))
-       }
+  } else {
+    ii <- 1:nrow(x)
+    ij <- rep(1, nrow(x))
+  }
 
   if (colnames(x)[1] == "x" && colnames(x)[2] == "var")
-    X <- x[ii, -(1:2)] else X <- x[ii,]
+    X <- x[ii, -(1:2)]
+  else
+    X <- x[ii,]
 
   dots$diag.panel  <- if(is.null(dots$diag.panel)) NULL else dots$diag.panel
   dots$lower.panel <- if(is.null(dots$lower.panel)) panel.cor else dots$lower.panel
@@ -229,10 +231,10 @@ pairs.sensFun <- function (x, which = NULL, ...) {
 ## -----------------------------------------------------------------------------
 
 plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
-  nx    <-attr(x,"nx")
+  nx    <- attr(x,"nx")
   xname <- attr(x,"xname")
-  var   <-attr(x,"var")
-  TYP   <-attr(x,"Type")
+  var   <- attr(x,"var")
+  TYP   <- attr(x,"Type")
 
   dots   <- list(...)
   nmdots <- names(dots)
@@ -243,7 +245,7 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
   dots$ylab <- if(is.null(dots$ylab)) "sensitivity" else dots$ylab
   dots$type <- if(is.null(dots$type)) "l" else dots$type
   dots$col  <- if(is.null(dots$col)) 1:nc else dots$col
-  dots$xlab <- if(is.null(dots$xlab))xname else dots$xlab
+  dots$xlab <- if(is.null(dots$xlab)) xname else dots$xlab
   Allvars   <- FALSE
   Ylim      <- is.null(dots$ylim)
 
@@ -252,7 +254,7 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
 
   ## Set par mfrow and ask.
   if (! is.null(which)) {
-    ask <- setplotpar (nmdots, dots, length(Select), ask)
+    ask <- setplotpar(nmdots, dots, length(Select), ask)
 
   } else {
     dots$ylim <- if(is.null(dots$ylim)) range(x[,-(1:2)])
@@ -269,9 +271,8 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
   }
 
   Lty <- is.null(dots$lty)
-
   st <- 1
-  
+
   ## xlim
   if (is.null(dots$xlim)) {
     is <- NULL
@@ -280,7 +281,7 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
         ii <- ((i-1) * nx + 1):(i*nx)
       else
         ii <- (nx[i] + 1):nx[i + 1]
-     is <- c(is, ii)
+      is <- c(is, ii)
     }
     dots$xlim <- range(x[is, 1])
   }
@@ -297,10 +298,10 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
     if (Ylim)  dots$ylim <- range(sens[-(1:2)])
 
     if (st==1)
-      do.call("matplot",c(alist(sens$x, as.matrix( sens[,-(1:2)])), dots))
+      do.call("matplot",c(alist(sens$x, as.matrix( sens[, -(1:2)])), dots))
     else
-      do.call("matlines",c(alist(sens$x, as.matrix( sens[,-(1:2)])), dots))
-    if (Allvars) st <- st+1
+      do.call("matlines",c(alist(sens$x, as.matrix( sens[, -(1:2)])), dots))
+    if (Allvars) st <- st + 1
   }
   if (! is.na(legpos))
     legend(legpos, names(x[,-(1:2)]), col = 1:nc, lty = 1)
@@ -315,9 +316,9 @@ plot.summary.sensFun<- function(x, which = 1:nrow(x), ...) {
 
   mf <- par (mfrow = c(2, 3))
   Names <- names(x)
-  X <- as.matrix(x[,1:8])
-  
-  ii <- selectvar(which,rownames(x),Nall = TRUE)
+  X <- as.matrix(x[, 1:8])
+
+  ii <- selectvar(which, rownames(x),Nall = TRUE)
   setnames <- is.null(dots$main)
   for (i in 3:7)  {
     dots$main <- if(setnames) Names[i] else dots$main
@@ -325,7 +326,7 @@ plot.summary.sensFun<- function(x, which = 1:nrow(x), ...) {
     dots$col <- if(is.null(dots$col)) "black" else dots$col
 
     do.call("dotchart", c(alist(X[ii, i]), dots))
-    abline(v=0, lty = 3)
+    abline(v = 0, lty = 3)
   }
 
   par (mfrow = mf)

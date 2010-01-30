@@ -14,9 +14,9 @@ Grid(parRange, num)
 }
 \arguments{
   \item{parRange }{the range (min, max) of the parameters, a matrix or a
-    data.frame with one row for each parameter, and two columns with the minimum
-    (1st) and maximum (2nd) column.
-  }
+    data.frame with one row for each parameter, and two columns with the
+    minimum (1st) and maximum (2nd) column.  }
+  
   \item{num }{the number of random parameter sets to generate.
   }
 }
@@ -26,9 +26,10 @@ Grid(parRange, num)
 }
 
 \details{
-  The grid design produces the most regular parameter distribution; there is no
-  randomness involved.
-  The number of parameter sets generated with \code{Grid} will be <= \code{num}.
+  The grid design produces the most regular parameter distribution;
+  there is no randomness involved.
+  The number of parameter sets generated with \code{Grid} will be <=
+  \code{num}.
 }
 
 \examples{
@@ -50,7 +51,6 @@ pairs(Grid(parRange, 500), main = "Grid")
   \code{\link{Unif}} for uniformly distributed random parameter sets.
   
   \code{\link{seq}} the R-default for generating regular sequences of numbers.
-
 }
 \author{
   Karline Soetaert <k.soetaert@nioo.knaw.nl>

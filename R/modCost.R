@@ -50,7 +50,7 @@ modCost <- function (model, obs, x = "time", y = NULL, err = NULL,
 
   if (!is.null(y)) {   # it is in table format; first column are names of observed data...
 
-    Names    <- as.character(unique(obs[,1]))   # Names of data sets, all data should be model variables...
+    Names    <- as.character(unique(obs[, 1]))  # Names of data sets, all data should be model variables...
     Ndat     <- length(Names)                   # Number of data sets
     ilist    <- 1:Ndat
     if (! is.character(y))
@@ -87,9 +87,9 @@ modCost <- function (model, obs, x = "time", y = NULL, err = NULL,
     }
 
   xMod     <- model[,ixMod]    # Independent variable, model
-  } else if (length(ix)==1) {
-   ixMod    <- which(colnames(model)==x)
-   if (length(ixMod)==0)
+  } else if (length(ix) == 1) {
+   ixMod    <- which(colnames(model) == x)
+   if (length(ixMod) == 0)
      stop(paste("Cannot calculate cost: independent variable not found in model output", x))
    xMod     <- model[,ixMod]    # Independent variable, model
   }
@@ -111,7 +111,7 @@ modCost <- function (model, obs, x = "time", y = NULL, err = NULL,
       if (length(ix) > 0) xDat <- obs[iDat, ix]
       obsdat <- obs[iDat, iy]
     } else {
-      if (length(ix) > 0) xDat <- obs[,1]
+      if (length(ix) > 0) xDat <- obs[, 1]
       obsdat <- obs[,i]
     }
     ii <- which(is.na(obsdat))
@@ -201,10 +201,10 @@ plot.modCost<- function(x, legpos="topleft", ...) {
 
   dots$xlab <- if(is.null(dots$xlab)) "x" else dots$xlab
   dots$ylab <- if(is.null(dots$ylab)) "weighted residuals" else dots$ylab
-  DotsPch   <- if(is.null(dots$pch)) c(16:24) else dots$pch
-  dots$pch  <- if(is.null(dots$pch)) c(16:24)[x$residuals$name] else dots$pch[x$residuals$name]
-  DotsCol   <- if(is.null(dots$col)) c(1:nvar) else dots$col
-  dots$col  <- if(is.null(dots$col)) c(1:nvar)[x$residuals$name] else dots$col[x$residuals$name]
+  DotsPch   <- if(is.null(dots$pch)) (16:24) else dots$pch
+  dots$pch  <- if(is.null(dots$pch)) (16:24)[x$residuals$name] else dots$pch[x$residuals$name]
+  DotsCol   <- if(is.null(dots$col)) (1:nvar) else dots$col
+  dots$col  <- if(is.null(dots$col)) (1:nvar)[x$residuals$name] else dots$col[x$residuals$name]
 
   do.call("plot", c(alist(x$residuals$x, x$residuals$res), dots))
 

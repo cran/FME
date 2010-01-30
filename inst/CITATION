@@ -1,0 +1,20 @@
+citHeader("To cite FME in publications use:")
+
+citEntry(entry = "Article",
+  title        = "Inverse Modelling, Sensitivity and Monte Carlo Analysis in {R} Using Package {FME}",
+  author       = personList(as.person("Karline Soetaert"),
+                   as.person("Thomas Petzoldt")),
+  journal      = "Journal of Statistical Software",
+  year         = "2010",
+  volume       = "33",
+  number       = "3",
+  pages        = "1--28",
+  url          = "http://www.jstatsoft.org/v33/i03/",
+
+  textVersion  =
+  paste("Soetaert, Karline and Petzoldt, Thomas, 2010.",
+        "Inverse Modelling, Sensitivity and Monte Carlo Analysis in R Using Package FME.",
+        "Journal of Statistical Software, 33(3), 1-28.",
+        "URL http://www.jstatsoft.org/v33/i03/.")
+)
+

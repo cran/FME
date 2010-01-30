@@ -10,18 +10,19 @@
   Based on the sensitivity functions of model variables to a selection
   of parameters, calculates the "identifiability" of sets of parameter.
 
-  The sensitivity functions are a matrix whose(i,j)-th element contains
-  \deqn{ \frac{\partial y_i}{\partial \Theta _j}\cdot \frac{\Delta \Theta _j}
-  {\Delta y_i}}{dy_i/dpar_j*parscale_j/varscale_i}
-  and where \eqn{y_i}{y_i} is an output variable, at a certain (time)
-  instance, i, \eqn{\Delta y_i}{varscale_i} is the scaling of variable
+  The sensitivity functions are a matrix whose (i,j)-th element contains
+  \deqn{\frac{\partial y_i}{\partial \Theta _j}\cdot \frac{\Delta
+  \Theta _j} {\Delta y_i}}{dy_i/dpar_j*parscale_j/varscale_i} and where
+  \eqn{y_i}{y_i} is an output variable, at a certain (time) instance, i,
+  \eqn{\Delta y_i}{varscale_i} is the scaling of variable
   \eqn{y_i}{y_i}, \eqn{\Delta \Theta_j}{parscale_j} is the scaling of
   parameter \eqn{\Theta_j}{par_j}.
 
   Function \code{collin} estimates the collinearity, or identifiability of all
   parameter sets or of one parameter set.
 
-  As a rule of thumb, a collinearity value less than about 20 is "identifiable"
+  As a rule of thumb, a collinearity value less than about 20 is
+  "identifiable".
 }
 
 \usage{
@@ -49,35 +50,36 @@ collin(sensfun, parset = NULL, N = NULL, which = NULL)
   }
 }
 \value{
-  a data.frame of class \code{collin} with one row for each parameter combination
-  (parameters as in \code{sensfun})
+  a data.frame of class \code{collin} with one row for each parameter
+  combination (parameters as in \code{sensfun}).
 
   Each row contains:
-  \item{... }{for each parameter whether it is present (1) or absent (0)
+  
+  \item{...}{for each parameter whether it is present (1) or absent (0)
     in the set,}
-  \item{N }{the number of parameters in the set,}
-  \item{collinearity }{the collinearity value.}
+  \item{N}{the number of parameters in the set,}
+  \item{collinearity}{the collinearity value.}
 
   The data.frame returned by \code{collin} has methods for the generic
-    functions \code{\link{print}} and \code{\link{plot}}.
+  functions \code{\link{print}} and \code{\link{plot}}.
 }
 
 \details{
   The collinearity is a measure of approximate linear dependence between
-  sets of parameters. The higher its value, the more the parameters are related.
-  With "related" is meant that several paraemter combinations may produce
-  similar values of the output variables.
+  sets of parameters. The higher its value, the more the parameters are
+  related.  With "related" is meant that several paraemter combinations
+  may produce similar values of the output variables.
 }
 
 \note{
-  It is possible to use \code{collin} for selecting
-  parameter sets that can be fine-tuned based on a data set.
-  Thus it is a powerful technique to make model calibration routines more robust,
-  because calibration routines often fail when parameters are strongly related.
+  It is possible to use \code{collin} for selecting parameter sets that
+  can be fine-tuned based on a data set.  Thus it is a powerful
+  technique to make model calibration routines more robust, because
+  calibration routines often fail when parameters are strongly related.
 
-  In general, when the collinearity index exceeds 20, the linear dependence is
-  assumed to be critical (i.e. it will not be possible or easy to estimate all
-  the parameters in the combination together).
+  In general, when the collinearity index exceeds 20, the linear
+  dependence is assumed to be critical (i.e. it will not be possible or
+  easy to estimate all the parameters in the combination together).
 
   The procedure is explained in Omlin et al. (2001).
 
@@ -102,11 +104,11 @@ collin(sensfun, parset = NULL, N = NULL, which = NULL)
 ## =======================================================================
 
 ## linearly related set...  => Infinity
-collin (cbind(1:5,2*(1:5)))
+collin(cbind(1:5, 2*(1:5)))
 
 ## unrelated set            => 1
-MM<- matrix(nr=4,nc=2,byrow=TRUE,data=c( -0.400, -0.374, 0.255,
-   0.797, 0.690, -0.472, -0.546,  0.049))
+MM <- matrix(nr = 4, nc = 2, byrow = TRUE,
+  data=c(-0.400, -0.374, 0.255, 0.797, 0.690, -0.472, -0.546,  0.049))
 
 collin(MM)
 
@@ -114,33 +116,33 @@ collin(MM)
 ## Bacterial model as in Soetaert and Herman, 2009
 ## =======================================================================
 
-pars <- list(gmax =0.5,eff = 0.5,
-              ks =0.5, rB =0.01, dB =0.01)
+pars <- list(gmax = 0.5,eff = 0.5,
+             ks = 0.5, rB = 0.01, dB = 0.01)
 
 solveBact <- function(pars) {
   derivs <- function(t, state, pars) {   # returns rate of change
-    with (as.list(c(state,pars)), {
-      dBact = gmax*eff*Sub/(Sub+ks)*Bact - dB*Bact - rB*Bact
-      dSub  =-gmax    *Sub/(Sub+ks)*Bact + dB*Bact
-      return(list(c(dBact,dSub)))
+    with (as.list(c(state, pars)), {
+      dBact <-  gmax*eff*Sub/(Sub + ks)*Bact - dB*Bact - rB*Bact
+      dSub  <- -gmax    *Sub/(Sub + ks)*Bact + dB*Bact
+      return(list(c(dBact, dSub)))
     })
   }
-
- state   <- c(Bact=0.1,Sub = 100)
- tout    <- seq(0,50,by=0.5)
- ## ode solves the model by integration...
- return(as.data.frame(ode(y=state,times=tout,func=derivs,parms=pars)))
+  state   <- c(Bact = 0.1, Sub = 100)
+  tout    <- seq(0, 50, by = 0.5)
+  ## ode solves the model by integration...
+  return(as.data.frame(ode(y = state, times = tout, func = derivs,
+    parms = pars)))
 }
 
 out <- solveBact(pars)
 
 ## We wish to estimate parameters gmax and eff by fitting the model to
 ## these data:
-Data <- matrix (nc=2,byrow=TRUE,data=
-c(  2,  0.14,    4,  0.2,     6,  0.38,    8,  0.42,
-   10,  0.6,    12,  0.107,  14,  1.3,    16,  2.0,
-   18,  3.0,    20,  4.5,    22,  6.15,   24,  11,
-   26, 13.8,    28, 20.0,    30,  31 ,    35, 65, 40, 61)
+Data <- matrix(nc = 2, byrow = TRUE, data =
+  c(  2,  0.14,  4,  0.2,    6,  0.38,  8,  0.42,
+     10,  0.6,  12,  0.107, 14,  1.3,  16,  2.0,
+     18,  3.0,  20,  4.5,   22,  6.15, 24,  11,
+     26, 13.8,  28, 20.0,   30,  31 ,  35, 65, 40, 61)
 )
 colnames(Data) <- c("time","Bact")
 head(Data)
@@ -150,15 +152,15 @@ colnames(Data2) <- c("time", "Sub")
 
 
 ## Objective function to minimise
-Objective <- function (x) {              # Model cost
+Objective <- function (x) {                  # Model cost
  pars[] <- x
  out   <- solveBact(x)
- Cost  <- modCost(obs=Data2,model=out)   # observed data in 2 data.frames
- return(modCost(obs=Data,model=out,cost=Cost))
+ Cost  <- modCost(obs = Data2, model = out)  # observed data in 2 data.frames
+ return(modCost(obs = Data, model = out, cost = Cost))
 }
 
 ## 1. Estimate sensitivity functions - all parameters
-sF <- sensFun(func=Objective,parms=pars,varscale=1)
+sF <- sensFun(func = Objective, parms = pars, varscale = 1)
 
 ## 2. Estimate the collinearity
 Coll <- collin(sF)
@@ -192,14 +194,16 @@ collin(sensFun(Objective, P, varscale = 1))
   Karline Soetaert <k.soetaert@nioo.knaw.nl>
 }
 \references{
-  Brun, R., Reichert, P., Kunsch, H.R., 2001.
-  Practical identifiability analysis of large environmental simulation models.
-  Water Resour. Res. 37(4): 1015--1030
+  Brun, R., Reichert, P. and Kunsch, H. R., 2001.
+  Practical Identifiability Analysis of Large Environmental Simulation Models.
+  Water Resour. Res. 37(4): 1015--1030.
 
   Omlin, M., Brun, R. and Reichert, P., 2001.
-  Biogeochemical model of Lake Zurich: sensitivity, identifiability and
-  uncertainty analysis. Ecol. Modell. 141: 105--123
+  Biogeochemical Model of Lake Zurich: Sensitivity, Identifiability and
+  Uncertainty Analysis. Ecol. Modell. 141: 105--123.
 
-}
-\keyword{utilities}
+  Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity
+  and Monte Carlo Analysis in R Using Package FME.  Journal of
+  Statistical Software 33(3) 1--28.
+  \url{http://www.jstatsoft.org/v33/i03} } \keyword{utilities}
 

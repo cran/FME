@@ -5,7 +5,8 @@
   Latin Hypercube Sampling
 }
 \description{
-  Generates random parameter sets using a latin hypercube sampling algorithm.
+  Generates random parameter sets using a latin hypercube sampling
+  algorithm.
 }
 
 \usage{
@@ -27,15 +28,16 @@ Latinhyper(parRange, num)
 }
 
 \details{
-  In the latin hypercube sampling, the space for each parameter is subdivided
-  into \code{num} equally-sized segments and one parameter value in each of
-  the segments drawn randomly.
+  In the latin hypercube sampling, the space for each parameter is
+  subdivided into \code{num} equally-sized segments and one parameter
+  value in each of the segments drawn randomly.
 }
 
 \note{
   The latin hypercube distributed parameter sets give better coverage in
   parameter space than the uniform random design (\code{\link{Unif}}).
-  It is a reasonable choice in case the number of parameter sets is limited.
+  It is a reasonable choice in case the number of parameter sets is
+  limited.
 }
 
 \examples{
@@ -52,12 +54,13 @@ pairs(Latinhyper(parRange, 100), main = "Latin hypercube")
   University Press.
 }
 \seealso{
-  \code{\link{Norm}} for (multi)normally distributed random parameter sets.
-
+  \code{\link{Norm}} for (multi)normally distributed random parameter
+    sets.
+    
   \code{\link{Unif}} for uniformly distributed random parameter sets.
 
-  \code{\link{Grid}} to generate random parameter sets arranged on a regular
-    grid
+  \code{\link{Grid}} to generate random parameter sets arranged on a
+    regular grid.
 }
 \author{
   Karline Soetaert <k.soetaert@nioo.knaw.nl>

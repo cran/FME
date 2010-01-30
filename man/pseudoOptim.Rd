@@ -1,9 +1,11 @@
 \name{pseudoOptim}
 \alias{pseudoOptim}
-\title{Pseudo-random Search Optimisation Algorithm of Price (1997)}
-\description{Fits a model to data, using the pseudo-random search algorithm of
-  Price (1997), a random-based fitting technique.}
-\usage{pseudoOptim(f, p,..., lower, upper, control=list())}
+\title{Pseudo-random Search Optimisation Algorithm of Price (1977)}
+\description{Fits a model to data, using the pseudo-random search
+  algorithm of Price (1997), a random-based fitting technique.
+}
+
+\usage{pseudoOptim(f, p,..., lower, upper, control = list())}
 \arguments{
   \item{f }{function to be minimised, its first argument should be the vector
     of parameters over which minimization is to take place. It should return
@@ -43,21 +45,22 @@ plot(x,y,pch=16)
 
 cost <- function(par) sum((par[1]*sin(2*pi*x/par[2]+par[3])-y)^2)
 
-p1 <- optim(par=c(amplitude=1,phase=1,period=1), cost)
-p2 <- optim(par=c(amplitude=1,phase=1,period=1), cost,method="SANN")
-p3 <- pseudoOptim(p=c(amplitude=1,phase=1,period=1),lower=c(0,1e-8,0),
-            upper=c(100,2*pi,100), f=cost,control=c(numiter=3000,verbose=TRUE))
+p1 <- optim(par=c(amplitude=1, phase=1, period=1), cost)
+p2 <- optim(par=c(amplitude=1, phase=1, period=1), cost, method="SANN")
+p3 <- pseudoOptim(p=c(amplitude=1, phase=1, period=1), lower=c(0,1e-8,0),
+        upper=c(100, 2*pi, 100), f=cost,
+        control=c(numiter=3000, verbose=TRUE))
 
-curve(p1$par[1]*sin(2*pi*x/p1$par[2]+p1$par[3]),lty=2,add=TRUE)
-curve(p2$par[1]*sin(2*pi*x/p2$par[2]+p2$par[3]),lty=3,add=TRUE)
-curve(p3$par[1]*sin(2*pi*x/p3$par[2]+p3$par[3]),lty=1,add=TRUE)
+curve(p1$par[1]*sin(2*pi*x/p1$par[2]+p1$par[3]), lty=2, add=TRUE)
+curve(p2$par[1]*sin(2*pi*x/p2$par[2]+p2$par[3]), lty=3, add=TRUE)
+curve(p3$par[1]*sin(2*pi*x/p3$par[2]+p3$par[3]), lty=1, add=TRUE)
     legend ("bottomright",lty=c(1,2,3),
              c("Price","Mathematical","Simulated annealing"))}
 \details{
 The \code{control} argument is a list that can supply any of the
 following components:
 \itemize{
-  \item npop,number of elements in the population.
+  \item npop, number of elements in the population.
     Defaults to max(5*length(p),50).
   \item numiter, maximal number of iterations to be performed.
     Defaults to 10000. The algorithm either stops when \code{numiter}
@@ -75,12 +78,11 @@ see the book of Soetaert and Herman (2009) for a description of the algorithm
 AND for a line to line explanation of the function code.
 }
 \references{
-Soetaert, K. and P.M.J. Herman, 2009.
-A Practical Guide to Ecological Modelling. Using R as a Simulation Platform.
- Springer, 372 pp.
+  Soetaert, K. and Herman, P. M. J., 2009.  A Practical Guide to Ecological
+  Modelling. Using R as a Simulation Platform.  Springer, 372 pp.
  
-Price, W.L., 1977.  A controlled random search procedure for global optimisation.
-The Computer Journal, 20: 367-370.
+  Price, W.L., 1977.  A Controlled Random Search Procedure for Global
+  Optimisation.  The Computer Journal, 20: 367-370.
 }
 \keyword{optimize}
 

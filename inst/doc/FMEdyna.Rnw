@@ -20,14 +20,17 @@
 \newcommand{\rs}{\textbf{\textsf{rootSolve }}}
 \newcommand{\R}{\proglang{R}}
 
-\title{\proglang{R}-package \fme: inverse modelling, sensitivity,
-  Monte Carlo - applied to a dynamic simulation model}
+\title{\proglang{R}~Package \fme: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Dynamic Simulation Model}
 
-\Shorttitle{\fme: inverse modelling, sensitivity,
-  Monte Carlo with dynamic models}
+\Plaintitle{R~Package FME: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Dynamic Simulation Model}
 
 
-\Plaintitle{FME}
+\Shorttitle{\fme -- Inverse Modelling, Sensitivity,
+  Monte Carlo With a Dynamic Model}
+
+
 
 \Keywords{dynamic simulation models, differential equations, fitting,
   sensitivity, Monte Carlo, identifiability, \proglang{R}}
@@ -71,7 +74,7 @@ The Netherlands
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
 %% need no \usepackage{Sweave}
-%\VignetteIndexEntry{Sensitivity, calibration, identifiability, Monte Carlo analysis of a dynamic simulation model}
+%\VignetteIndexEntry{2. Sensitivity, Calibration, Identifiability, Monte Carlo Analysis of a Dynamic Simulation Model}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
 \begin{document}

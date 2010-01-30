@@ -20,7 +20,7 @@
 \newcommand{\rs}{\textbf{\textsf{rootSolve }}}
 \newcommand{\R}{\proglang{R}}
 \title{\proglang{R}-package \fme: MCMC tests}
-\Plaintitle{FME - MCMC tests}
+\Plaintitle{Tests of the Markov Chain Monte Carlo Implementation}
 
 \Keywords{Markov chain Monte Carlo, delayed rejection, adapative Metropolis,
 MCMC, DRAM,  \proglang{R}}
@@ -66,7 +66,7 @@ It includes the delayed rejection and adaptive Metropolis algorithm \citep{Haari
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
 %% need no \usepackage{Sweave}
-%\VignetteIndexEntry{FME - tests of the Markov chain Monte Carlo implementation}
+%\VignetteIndexEntry{3. Tests of the Markov Chain Monte Carlo Implementation}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
 \begin{document}

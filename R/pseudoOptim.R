@@ -27,16 +27,16 @@ pseudoOptim <- function (f, p, ..., lower, upper, control = list() ) {
 
   npop     <- con$npop
   numiter  <- con$numiter
-  centroid <-con$centroid
-  varleft  <-con$varleft
+  centroid <- con$centroid
+  varleft  <- con$varleft
 
-  cost     <- function (par) f(par,...)
+  cost     <- function (par) f(par, ...)
   tiny     <- 1e-8
-  varleft  <-max(tiny,varleft)
+  varleft  <- max(tiny,varleft)
   rsstrace <- NULL
 
-  populationpar  <- matrix(nrow = npop, ncol = npar, byrow = TRUE,
-             data = lower + runif(npar*npop) * rep((upper - lower), npop))
+  populationpar <- matrix(nrow = npop, ncol = npar, byrow = TRUE,
+    data = lower + runif(npar*npop) * rep((upper - lower), npop))
   colnames(populationpar) <- names(p)
   populationpar[1,] <- p
 
@@ -45,19 +45,19 @@ pseudoOptim <- function (f, p, ..., lower, upper, control = list() ) {
   worstcost      <- populationcost[iworst]
 
   ## Hybridisation phase
-  iter<-0
+  iter <- 0
   lastbest  <- -Inf
   while (iter < numiter && (max(populationcost) - min(populationcost))
                                   > (min(populationcost)*varleft)) {
-    iter<-iter + 1
+    iter <- iter + 1
 
-    selectpar <- sample(1:npop,size=centroid)  # for cross-fertilisation
-    mirrorpar <- sample(1:npop,size=1)         # for mirroring
+    selectpar <- sample(1:npop, size = centroid)  # for cross-fertilisation
+    mirrorpar <- sample(1:npop, size = 1)         # for mirroring
 
     newpar    <- colMeans(populationpar[selectpar,])    # centroid
     newpar    <- 2*newpar - populationpar[mirrorpar,]   # mirroring
 
-    newpar    <- pmin( pmax(newpar,lower) ,upper)
+    newpar    <- pmin(pmax(newpar, lower), upper)
 
     newcost   <- cost(newpar)
     if(!is.nan(newcost) & !is.na(newcost) & !is.null(newcost)) {
