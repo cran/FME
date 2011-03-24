@@ -20,10 +20,10 @@
 \newcommand{\rs}{\textbf{\textsf{rootSolve }}}
 \newcommand{\R}{\proglang{R}}
 
-\title{\proglang{R}-Package \fme: Inverse Modelling, Sensitivity,
+\title{\proglang{R} Package \fme: Inverse Modelling, Sensitivity,
   Monte Carlo -- Applied to a Nonlinear Model}
 
-\Plaintitle{R~Package FME: Inverse Modelling, Sensitivity,
+\Plaintitle{R Package FME: Inverse Modelling, Sensitivity,
   Monte Carlo -- Applied to a Nonlinear Model}
 
 \Shorttitle{\fme --  Inverse Modelling, Sensitivity, Monte Carlo With
@@ -118,7 +118,7 @@ Obs <- data.frame(x=c(   28,  55,   83,  110,  138,  225,  375),   # mg COD/l
 @
 The Monod model returns a data.frame, with elements x and y :
 <<>>=
-Model <- function(p,x) return(data.frame(x=x,y=p[1]*x/(x+p[2])))
+Model <- function(p, x) return(data.frame(x = x, y = p[1]*x/(x+p[2])))
 @
 
 \subsection{Fitting the model to data}
@@ -126,13 +126,13 @@ We first fit the model to the data.
 
 Function \code{Residuals} estimates the deviances of model versus the data.
 <<>>=
-Residuals  <- function(p) (Obs$y-Model(p,Obs$x)$y)
+Residuals  <- function(p) (Obs$y - Model(p, Obs$x)$y)
 @
 
 This function is input to \code{modFit} which fits the model to the observations.
 <<>>=
 print(system.time(
-P      <- modFit(f=Residuals,p=c(0.1,1))
+P      <- modFit(f = Residuals, p = c(0.1, 1))
 ))
 @
 
@@ -147,12 +147,12 @@ We also plot the residual sum of squares, the residuals and the best-fit model
 x      <-0:375
 @
 <<label=Monplot, include=FALSE>>=
-par(mfrow=c(2,2))
-plot(P,mfrow=NULL)
-plot(Obs,pch=16,cex=2,xlim=c(0,400),ylim=c(0,0.15),
-     xlab="mg COD/l",ylab="1/hr",main="best-fit")
-lines(Model(P$par,x))
-par(mfrow=c(1,1))
+par(mfrow = c(2, 2))
+plot(P, mfrow = NULL)
+plot(Obs, pch = 16, cex = 2, xlim = c(0, 400), ylim = c(0, 0.15),
+     xlab = "mg COD/l", ylab = "1/hr", main = "best-fit")
+lines(Model(P$par, x))
+par(mfrow = c(1, 1))
 @
 \setkeys{Gin}{width=0.6\textwidth}
 \begin{figure}
@@ -183,22 +183,22 @@ Covar   <- sP$cov.scaled * 2.4^2/2
 s2prior <- sP$modVariance
 
 print(system.time(
-MCMC <- modMCMC(f=Residuals,p=P$par,jump=Covar,niter=3000,
-                var0=s2prior,wvar0=1,lower=c(0,0))
+MCMC <- modMCMC(f = Residuals, p = P$par, jump = Covar, niter = 3000,
+                var0 = s2prior, wvar0 = 1, lower = c(0, 0))
 ))
 @
 By toggling on covariance adaptation (\code{updatecov} and delayed rejection
 (\code{ntrydr}), the acceptance rate is increased:
 <<>>=
 print(system.time(
-MCMC <- modMCMC(f=Residuals,p=P$par,jump=Covar,niter=3000, ntrydr=3,
-                var0=s2prior,wvar0=1,updatecov=100,lower=c(0,0))
+MCMC <- modMCMC(f = Residuals, p = P$par, jump = Covar, niter = 3000, 
+      ntrydr = 3, var0 = s2prior, wvar0 = 1, updatecov = 100, lower = c(0, 0))
 ))
 MCMC$count
 @
 The plotted results demonstrate (near-) convergence of the chain.
 <<label=Monmcmc, include=FALSE>>=
-plot(MCMC,Full=TRUE)
+plot(MCMC, Full = TRUE)
 @
 \setkeys{Gin}{width=0.8\textwidth}
 \begin{figure}
@@ -213,7 +213,7 @@ plot(MCMC,Full=TRUE)
 The posterior distribution of the parameters, the sum of squares and the
 model's error standard deviation.
 <<label=Monhist, include=FALSE>>=
-hist(MCMC,Full=TRUE,col="darkblue")
+hist(MCMC, Full = TRUE, col = "darkblue")
 @
 \setkeys{Gin}{width=0.8\textwidth}
 \begin{figure}
@@ -281,7 +281,7 @@ sR<-sensRange(parInput=MCMC$pars,func=Model,x=1:375)
 @
 The distribution is plotted and the data added to the plot:
 <<label=Monsum, include=FALSE>>=
-plot(summary(sR),quant=TRUE)
+plot(summary(sR), quant = TRUE)
 points(Obs)
 @
 \setkeys{Gin}{width=0.8\textwidth}
@@ -320,8 +320,8 @@ are parameters; \code{ivar} points only to the variables.
 nout  <- nrow(sR)
 sR2   <- sR
 ivar  <- 3:ncol(sR)
-error <- rnorm(nout,mean=0,sd=sqrt(MCMC$sig[pset]))
-sR2[,ivar] <- sR2[,ivar] + error
+error <- rnorm(nout, mean = 0, sd = sqrt(MCMC$sig[pset]))
+sR2[,ivar] <- sR2[ ,ivar] + error
 @
 <<label=MonsumM, include=FALSE>>=
 plot(summary(sR2),quant=TRUE)

@@ -16,7 +16,7 @@ setplotpar <- function(nmdots, dots, nv, ask) {
 
   ## interactively wait if there are remaining figures
   if (is.null(ask))
-    ask <- prod(par("mfrow")) < length(which) && dev.interactive()
+    ask <- prod(par("mfrow")) < nv && dev.interactive()
 
   return(ask)
 }
@@ -47,7 +47,8 @@ panel.hist <- function(x,...) {
 
 findvar <- function(var1, var2, str = "var") {
   if (is.character(var2[[1]])){
-    ivar  <- which (names(var1) %in% var2)
+    ivar <- sapply(var2, FUN= function(x) which (names(var1) %in% x))
+#    ivar  <- which (names(var1) %in% var2)  #returns sorted list
     if (length(ivar)!= length(var2))
       stop(paste("cannot proceed: not all sensitivity", str, "are known"))
     return(ivar)
@@ -62,15 +63,17 @@ findvar <- function(var1, var2, str = "var") {
 ## Selecting numbers from "which"...
 ## =============================================================================
 
-selectvar <- function (which, var, nm = "x", Nall = FALSE) { # var = list from which to select...
+selectvar <- function (which, var, nm = "x", Nall = FALSE, NAallowed = FALSE) { # var = list from which to select...
   if (!is.null(which)) {
     if (! is.numeric(which)) {
       ln <- length(which)
       Select <- NULL
       for (i in which) {  # use loop rather than which(...%in%) to keep ordering of "which"
         ii <- which (var == i)
-        if (length(ii) == 0)
-          stop(paste(" variable in 'which' is not in", nm, ":", i))
+        if (length(ii) ==0 & ! NAallowed) 
+          stop("variable ", i, " not in variable names")
+        else if (length(ii) == 0)
+          Select <- c(Select, NA)
         Select <- c(Select, ii)
       }
     } else {     # index
@@ -88,3 +91,48 @@ selectvar <- function (which, var, nm = "x", Nall = FALSE) { # var = list from w
 
   return(Select)
 }
+### ============================================================================
+### first some common functions
+### ============================================================================
+# Update range, taking into account neg values for log transformed values
+Range <- function(Range, x, log) {
+   if (log) 
+      x[x <= 0] <- min(x[x>0])  # remove zeros
+   return( range(Range, x, na.rm = TRUE) )
+}
+
+## =============================================================================
+## function for checking and expanding arguments in dots (...) with default
+## =============================================================================
+
+expanddots <- function (dots, default, n) {
+  dots <- if (is.null(dots)) default else dots
+  rep(dots, length.out = n)
+}
+
+# ks->Th: for xlim and ylim....
+expanddotslist <- function (dots, n) {
+  if (is.null(dots)) return(dots)
+  dd <- if (!is.list(dots )) list(dots) else dots
+  rep(dd, length.out = n)
+}
+
+## =============================================================================
+## functions for expanding arguments in dots  (...)
+## =============================================================================
+
+repdots <- function(dots, n) 
+  if (is.function(dots)) dots else rep(dots, length.out = n)
+
+setdots <- function(dots, n) lapply(dots, repdots, n)
+
+## =============================================================================
+## function for extracting element 'index' from dots  (...)
+## =============================================================================
+
+extractdots <- function(dots, index) {
+  ret <- lapply(dots, "[", index)
+  ret <- lapply(ret, unlist) ## thpe: flatten list (experimental)
+  return(ret)
+}
+

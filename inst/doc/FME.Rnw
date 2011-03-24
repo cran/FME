@@ -233,43 +233,44 @@ The example models the dynamics of the HIV virus in human blood cells (Figure~\r
 \setkeys{Gin}{width=0.5\textwidth}
 \begin{figure}
 \begin{center}
-<<fig=TRUE,echo=FALSE>>=
-require(diagram)
-par(mar=c(0,0,0,0))
-cex1 <- 1.5
-openplotmat()
-names <- c("T-cells (T)","","Infected (I)","Virus (V)")
+\includegraphics{FME-HIV}
+%<<fig=TRUE,echo=FALSE>>=
+%require(diagram)
+%par(mar=c(0,0,0,0))
+%cex1 <- 1.5
+%openplotmat()
+%names <- c("T cells (T)","","Infected (I)","Virus (V)")
 
-pos <- matrix(nc=2,byrow=TRUE,
-  data=c(0.25,0.75,0.45,0.5, 0.85,0.5,0.25,0.25))
-M<-matrix(nr=4, byrow=TRUE, data= c(0,0,0,0,
-                                    1,0,0,1,
-                                    0,1,0,0,
-                                    0,0,1,0))
-arr.length<-M
-M[[2,1]]<- M[[2,4]] <-""
-M[[3,2]]<-"beta~T~V"
-M[[4,3]]<-"delta~I"
+%pos <- matrix(nc=2,byrow=TRUE,
+%  data=c(0.25,0.75,0.45,0.5, 0.85,0.5,0.25,0.25))
+%M<-matrix(nr=4, byrow=TRUE, data= c(0,0,0,0,
+%                                    1,0,0,1,
+%                                    0,1,0,0,
+%                                    0,0,1,0))
+%arr.length<-M
+%M[[2,1]]<- M[[2,4]] <-""
+%M[[3,2]]<-"beta~T~V"
+%M[[4,3]]<-"delta~I"
 
-pp <- straightarrow (pos[1,]+c(0,0.2), pos[1,],arr.pos=0.4,arr.type="triangle")
-text(pp[1]+0.035,pp[2],expression(lambda),cex=cex1)
-pp<-bentarrow(pos[1,],pos[1,]-c(0.15,0.15), arr.pos=1,arr.type="triangle")
-text(pp[1]+0.05,pp[2],expression(rho~ T),cex=cex1)
-mv <- pos[4,]
-pp<-bentarrow(mv,mv-c(0.12,0.15), arr.pos=1,arr.type="triangle")
-text(pp[1]+0.05,pp[2],"c V",cex=cex1)
+%pp <- straightarrow (pos[1,]+c(0,0.2), pos[1,],arr.pos=0.4,arr.type="triangle")
+%text(pp[1]+0.035,pp[2],expression(lambda),cex=cex1)
+%pp<-bentarrow(pos[1,],pos[1,]-c(0.15,0.15), arr.pos=1,arr.type="triangle")
+%text(pp[1]+0.05,pp[2],expression(rho~ T),cex=cex1)
+%mv <- pos[4,]
+%pp<-bentarrow(mv,mv-c(0.12,0.15), arr.pos=1,arr.type="triangle")
+%text(pp[1]+0.05,pp[2],"c V",cex=cex1)
 
-arr.length[]<-0.4
-arr.length[[2,1]]<- arr.length[[2,4]] <-0
+%arr.length[]<-0.4
+%arr.length[[2,1]]<- arr.length[[2,4]] <-0
 
-pp<-plotmat(M,pos=pos,curve=0,name=names,lwd=1,cex=cex1,
-            box.lwd=2,box.size=c(0.1,0,0.1,0.085),arr.type="triangle",
-            box.type=c("square","none","square","circle"),  dr=0.001,
-            box.prop=c(0.5,0.5,0.5,1),arr.lwd=2,arr.length=arr.length,
-            arr.pos=0.4,add=TRUE, box.cex=1.45)
-text(pos[4,1]+0.12,pos[4,2]+0.02,"*n",cex=cex1)
-par(mar=c(5.1,4.1,4.1,2.1))
-@
+%pp<-plotmat(M,pos=pos,curve=0,name=names,lwd=1,cex=cex1,
+%            box.lwd=2,box.size=c(0.1,0,0.1,0.085),arr.type="triangle",
+%            box.type=c("square","none","square","circle"),  dr=0.001,
+%            box.prop=c(0.5,0.5,0.5,1),arr.lwd=2,arr.length=arr.length,
+%            arr.pos=0.4,add=TRUE, box.cex=1.45)
+%text(pos[4,1]+0.12,pos[4,2]+0.02,"*n",cex=cex1)
+%par(mar=c(5.1,4.1,4.1,2.1))
+%@
 \end{center}
 \caption{Schematic representation of the HIV test model.}
 \label{fig:hiv}
@@ -827,7 +828,7 @@ fixed value \code{900}), and that returns the model cost.
 
 The log transformation (1) ensures that the parameters remain positive during
 the fitting, and (2) deals with the fact that the parameter values are spread
-over six orders of magnitude (i.e., \code{bet = 2e-5}, \code{lam=80}).
+over six orders of magnitude (i.e., \code{bet = 2e-5}, \code{lam = 80}).
 Within the function \code{HIVcost2}, the parameters are backtransformed
 (\code{exp(lpars)}).
 
@@ -907,7 +908,7 @@ effect of this on the parameter uncertainty.
 
 Bayesian methods can be used to derive the data-dependent probability
 distribution of the parameters.
-Function \code{modMCMC} implements a Markov Chain Monte Carlo (MCMC) method that
+Function \code{modMCMC} implements a Markov chain Monte Carlo (MCMC) method that
 uses the delayed rejection and adaptive Metropolis (DRAM) procedure
 \citep{Haario06, Laine08}.
 An MCMC method samples from probability distributions by constructing a Markov
@@ -989,17 +990,18 @@ The initial proposal covariance (\code{jump}) is based on the approximated
 covariance matrix, as returned by the \code{summary} method of \code{modFit},
 and scaled appropriately \citep{Gelman}.
 
-%% MCMC is rather time consuming, so we don't run this now
+%% MCMC is rather time consuming, so we don't run this automatically
+%% Set both eval=TRUE if you want to recalculate MCMC.
 <<>>=
 var0 <- Fit$var_ms_unweighted
 cov0 <- summary(Fit)$cov.scaled * 2.4^2/5
 <<eval=FALSE>>=
 MCMC <- modMCMC(f = HIVcost2, p = Fit$par, niter = 5000, jump = cov0,
                 var0 = var0, wvar0 = 0.1, updatecov = 50)
-#save(MCMC, file="mcmc.Rdata")
+<<eval=FALSE,echo=FALSE,results=hide>>=
+save(MCMC, file="mcmc.Rdata")
 @
-
-%%but instead load the pre-calculated data
+%% load the pre-calculated data
 <<echo=FALSE,results=hide>>=
 load("mcmc.Rdata")
 @

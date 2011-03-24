@@ -11,7 +11,7 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
 
   yRef  <- Solve(parms)
   Type <- 1
-  if (class(yRef) == "modCost") {
+  if("modCost" %in% class(yRef))  {
     Res    <- yRef$residuals
     ynames <- Res$name
     yRef <- cbind(Res$x, Res$mod)
@@ -245,6 +245,12 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
   dots$ylab <- if(is.null(dots$ylab)) "sensitivity" else dots$ylab
   dots$type <- if(is.null(dots$type)) "l" else dots$type
   dots$col  <- if(is.null(dots$col)) 1:nc else dots$col
+  if (dots$type %in% c("p","b")) 
+    dots$pch  <- if(is.null(dots$pch)) 15 else dots$pch
+  else
+    dots$pch  <- NULL
+    
+  dots$lwd  <- if(is.null(dots$lwd)) 1 else dots$lwd
   dots$xlab <- if(is.null(dots$xlab)) xname else dots$xlab
   Allvars   <- FALSE
   Ylim      <- is.null(dots$ylim)
@@ -272,6 +278,7 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
 
   Lty <- is.null(dots$lty)
   st <- 1
+  if(Lty) dots$lty <- st
 
   ## xlim
   if (is.null(dots$xlim)) {
@@ -294,7 +301,6 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
       if (! Allvars) dots$main <- var[i] else dots$main <- "All variables"
 
     sens<- x[ii,]
-    dots$lty <- if(Lty) st
     if (Ylim)  dots$ylim <- range(sens[-(1:2)])
 
     if (st==1)
@@ -304,7 +310,8 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
     if (Allvars) st <- st + 1
   }
   if (! is.na(legpos))
-    legend(legpos, names(x[,-(1:2)]), col = 1:nc, lty = 1)
+    legend(legpos, names(x[,-(1:2)]), col = dots$col, lty = dots$lty, 
+           lwd = dots$lwd, pch = dots$pch)
 
 }
 

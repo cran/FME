@@ -62,11 +62,17 @@
   \tabular{ll}{
     Package: \tab FME\cr
     Type: \tab Package\cr
-    Version: \tab 1.1\cr
-    Date: \tab 2010-02-01\cr
+    Version: \tab 1.3\cr
+    Date: \tab 2011-03-01\cr
     License: \tab GNU Public License 2 or above\cr
   }
 
+  bug corrections:
+
+  changed for version 1.3.
+  
+  modCost: minlogp was not correctly estimated if more than one
+    observed variable (used the wrong sd).
 }
 \author{
   Karline Soetaert

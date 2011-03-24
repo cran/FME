@@ -149,7 +149,7 @@ modMCMC <- function (f, p, ..., jump = NULL, lower = -Inf, upper = +Inf,
     NewPars <- function(p, ...) p + rnorm(npar, sd=jump)
     ii <- which (jump<0)
     jump[ii] <- 0.1*abs(p[ii])
-    R <- diag(nr = npar, jump)
+    R <- diag(nrow = npar, jump)
   } else {
     NewPars <- jump                        # jump is a function
     if (ntrydr > 1) stop ("cannot combine jump function with delayed rejection")

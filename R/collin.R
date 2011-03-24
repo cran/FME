@@ -122,7 +122,8 @@ collin <- function(sensfun, parset = NULL, N = NULL, which = NULL) {
         cc  <- combin(n, pset)   # all combinations of n pars from pset.
         # collinearity of the parameter sets in cc
         Collin <- rbind(Collin, collFun(cc, normSens, npar, iNa))
-      }
+      } else if (!is.null(N)) stop ("too many parameter combinations")
+        
     }
   } else {                 # parameter combination specified ..
     if (! is.vector(parset))

@@ -22,15 +22,16 @@
 }
 \usage{
 sensRange(func, parms = NULL, sensvar = NULL, dist = "unif",
-  parInput = NULL, parRange = NULL, parMean = NULL, parCovar = NULL,
-  map = 1, num = 100,  ...)
+          parInput = NULL, parRange = NULL, parMean = NULL, 
+          parCovar = NULL, map = 1, num = 100,  ...)
   
 \method{summary}{sensRange}(object, \dots)
 
 \method{plot}{summary.sensRange}(x, xyswap = FALSE,
               which = NULL, legpos = "topleft",
               col = c(grey(0.8), grey(0.7)),
-              quant = FALSE, ask = NULL, \dots)
+              quant = FALSE, ask = NULL, obs = NULL, 
+              obspar = list(), \dots)
 
 \method{plot}{sensRange}(x, xyswap = FALSE,
               which = NULL, ask = NULL, \dots)
@@ -121,6 +122,20 @@ sensRange(func, parms = NULL, sensvar = NULL, dist = "unif",
     interactive, see \code{\link{par}(ask=...)} and
     \code{\link{dev.interactive}}.
   }
+  \item{obs }{a \code{data.frame} or \code{matrix} with "observed data" that 
+    will be added as \code{points} to the plots. \code{obs} can also be a 
+    \code{list} with multiple data.frames and/or matrices containing 
+    observed data.
+    The first column of \code{obs} should contain the \code{time} or space-variable. 
+    If \code{obs} is not \code{NULL} and \code{which} is \code{NULL}, 
+    then the variables, common to both \code{obs} and \code{x} will be plotted.
+  }
+  \item{obspar }{additional graphics arguments passed to \code{points}, for 
+    plotting the observed data. If \code{obs} is a \code{list} containing multiple
+    observed data sets, then the graphics arguments can be  a vector
+    or a list (e.g. for \code{xlim}, \code{ylim}), specifying each data set 
+    separately.
+  }
   \item{... }{additional arguments passed to \code{func} or to the
     methods.
   }
@@ -139,9 +154,6 @@ sensRange(func, parms = NULL, sensvar = NULL, dist = "unif",
   'ode.band', 'ode.2D'}), have the output already in a form usable by
   \code{sensRange}.
 
-  The output for models solved by a steady-state solver (i.e. one of
-  \code{'steady', 'steady.1D', 'steady.band', 'steady.2D'}, needs to be
-  rearranged -- see examples.
 }
 \note{
   The following \emph{methods} are included:
@@ -171,6 +183,32 @@ sensRange(func, parms = NULL, sensvar = NULL, dist = "unif",
       figures aligned in a rectangular grid, unless par \code{mfrow} is
       passed as an argument.
   }
+
+  The output for models solved by a steady-state solver (i.e. one of
+  \code{'steady', 'steady.1D', 'steady.band', 'steady.2D'}, needs to be
+  rearranged -- see examples.
+
+  For \code{plot.summary.sensRange} and \code{plot.sensRange}, 
+  the number of panels per page is automatically determined up to 3 x 3
+  (\code{par(mfrow = c(3, 3))}). This default can be overwritten by
+  specifying user-defined settings for \code{mfrow} or \code{mfcol}.
+  Set \code{mfrow} equal to \code{NULL} to avoid the plotting function to 
+  change user-defined \code{mfrow} or \code{mfcol} settings.
+
+  Other graphical parameters can be passed as well. Parameters
+  are vectorized, either according to the number of plots 
+  (\code{xlab, ylab}, \code{main, sub}, \code{xlim, ylim}, \code{log},
+   \code{asp, ann, axes, frame.plot},\code{panel.first,panel.last},
+   \code{cex.lab,cex.axis,cex.main}) or 
+  according to the number of lines within one plot (other parameters 
+  e.g. \code{col}, \code{lty}, \code{lwd} etc.) so it is possible to
+  assign specific axis labels to individual plots, resp. different plotting 
+  style. Plotting parameter \code{ylim}, or \code{xlim} can also be a list 
+  to assign different axis limits to individual plots.
+  
+  Similarly, the graphical parameters for observed data, as passed by 
+  \code{obspar} can be vectorized, according to the number of observed 
+  data sets (when \code{obs} is a \code{list}).
 
   The \code{data.frame} of type \code{sensRange} has several attributes,
   which remain hidden, and which are generally not of practical use
@@ -251,6 +289,13 @@ par(mfrow = mf)
 
 ## Select one variable for plotting; plot the quantiles
 plot(Sens2, xlab = "time, hour", ylab = "molC/m3", which = "Bact", quant = TRUE)
+
+## Add data
+data <- cbind(time = c(0,10,20,30), Bact = c(0,1,10,45))
+plot(Sens2, xlab = "time, hour", ylab = "molC/m3", quant = TRUE, 
+  obs = data, obspar = list(col = "darkblue", pch = 16, cex = 2))
+
+
 
 }
 \author{

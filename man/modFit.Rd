@@ -283,7 +283,7 @@ Data <- data.frame(
 )
 
 plot(TT, Data[,"N"], ylim = c(0, 120), pch = 16, col = "red",
-  main = "logistic growth", xlab = "time", ylab = "N")
+     main = "logistic growth", xlab = "time", ylab = "N")
 
 
 ##===================================
@@ -298,7 +298,7 @@ model <- function(parms,time)
   with (as.list(parms), return(K/(1+(K/N0-1)*exp(-r*time))))
 
 ## run the model with initial guess and plot results
-lines(TT, model(parms, TT), lwd = 2,col = "green")
+lines(TT, model(parms, TT), lwd = 2, col = "green")
 
 ## FITTING algorithm 1
 ModelCost <- function(P) {
@@ -331,10 +331,10 @@ ModelCost2 <- function(P) {
 }
 
 Fit <- modFit(f = ModelCost2, p = parms, lower = rep(0, 3),
-  upper = c(5, 150, 10))
+              upper = c(5, 150, 10))
 
 out <- ode(y = c(N = Fit$par[["N0"]]), func = logist, parms = Fit$par,
-  times = times)
+           times = times)
 
 lines(out, col = "red", lty = 2)
 legend("right", c("data", "original", "fitted analytical", "fitted numerical"),
@@ -362,17 +362,27 @@ FUN <- function(x)
 JAC <- function(x) A
 
 ## The port algorithm
-print(system.time(mf <- modFit(f=FUN, p=runif(30), method="Port")))
-print(system.time(mf <- modFit(f=FUN, p=runif(30), method="Port", jac=JAC)))
+print(system.time(
+  mf <- modFit(f = FUN, p = runif(30), method = "Port")
+))
+print(system.time(
+  mf <- modFit(f = FUN, p = runif(30), method = "Port", jac = JAC)
+))
 max(abs(mf$par - X))  # should be very small
 
 ## BFGS
-print(system.time(mf <- modFit(f=FUN, p=runif(30), method="BFGS")))
-print(system.time(mf <- modFit(f=FUN, p=runif(30), method="BFGS", jac=JAC)))
+print(system.time(
+  mf <- modFit(f = FUN, p = runif(30), method = "BFGS")
+))
+print(system.time(
+  mf <- modFit(f = FUN, p = runif(30), method = "BFGS", jac = JAC)
+))
 max(abs(mf$par - X))
 
 ## Levenberg-Marquardt
-print(system.time(mf <- modFit(f=FUN, p=runif(30), jac=JAC)))
+print(system.time(
+  mf <- modFit(f = FUN, p = runif(30), jac = JAC)
+))
 max(abs(mf$par - X))
 }
 \author{

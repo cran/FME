@@ -176,6 +176,10 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
     if (! bounds)
       estHess<-TRUE
   }
+
+  names(res$par)<-names(p)
+  class(res)    <- "modFit"
+  # Karline: moved till here
   if (estHess)  {  # hessian (re)-estimated using backtransformed values
     useCost <- FALSE
 
@@ -185,9 +189,6 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
     else Jac <- gradient(Fun, res$par, centered = TRUE, ...)
     res$hessian <- 2 * t(Jac) %*% Jac
   }
-
-  names(res$par)<-names(p)
-  class(res)    <- "modFit"
 
   if (!method == "Marq")
     if (class(FF) == "modCost")

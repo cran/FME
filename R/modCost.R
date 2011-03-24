@@ -176,8 +176,9 @@ modCost <- function (model, obs, x = "time", y = NULL, err = NULL,
   ## SSR
   Cost  <- sum(CostVar$SSR * CostVar$scale)
 
-  Lprob <- -sum(log(pmax(0, dnorm(Residual$mod, Residual$obs, Err)))) # avoid log of negative values
-  #Lprob <- -sum(log(pmax(.Machine$double.xmin, dnorm(Residual$mod, Residual$obs, Err)))) #avoid log(0)
+  ## Corrected a bug in version 1.2
+  # Lprob <- -sum(log(pmax(0, dnorm(Residual$mod, Residual$obs, Err))))
+  Lprob <- -sum(log(pmax(0, dnorm(Residual$mod, Residual$obs, 1/Residual$weight)))) # avoid log of negative values
 
   if (! is.null(cost)) {
     Cost     <- Cost + cost$model

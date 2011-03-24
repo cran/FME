@@ -25,8 +25,8 @@
 }
 \usage{
 modCRL(func, parms = NULL, sensvar = NULL, dist = "unif",
-  parInput = NULL, parRange = NULL, parMean = NULL, parCovar = NULL,
-  num = 100, ...)
+       parInput = NULL, parRange = NULL, parMean = NULL, parCovar = NULL,
+       num = 100, ...)
 
 \method{summary}{modCRL}(object,  \dots)
 
@@ -177,13 +177,13 @@ solveBact <- function(pars) {
  tout  <- seq(0, 50, by = 0.5)
  ## ode solves the model by integration...
  return(as.data.frame(ode(y = state, times = tout, func = derivs,
-   parms = pars)))
+                          parms = pars)))
 }
 
 out <- solveBact(pars)
 
 plot(out$time, out$Bact, main = "Bacteria",
-  xlab = "time, hour", ylab = "molC/m3", type = "l",lwd = 2)
+  xlab = "time, hour", ylab = "molC/m3", type = "l", lwd = 2)
 
 ## Function that returns the last value of the simulation
 SF <- function (p) {

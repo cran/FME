@@ -14,10 +14,11 @@
 }
 
 \usage{
-modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf, prior = NULL,
-  var0 = NULL, wvar0 = NULL, n0 = NULL, niter = 1000, outputlength = niter,
-  burninlength = 0, updatecov = niter, covscale = 2.4^2/length(p),
-  ntrydr = 1, drscale = NULL, verbose = TRUE)
+modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf, 
+        prior = NULL, var0 = NULL, wvar0 = NULL, n0 = NULL, 
+        niter = 1000, outputlength = niter, burninlength = 0, 
+        updatecov = niter, covscale = 2.4^2/length(p),
+        ntrydr = 1, drscale = NULL, verbose = TRUE)
 
 %%cumuplot.modMCMC(x, Full=FALSE, which=1:ncol(x$pars), ...)
 
@@ -428,19 +429,19 @@ NL <- function(p) {
   -2*sum(log(dlnorm(p, mean = mu, sd = 1)))      #-2*log(probability)
 }
 MCMCl <- modMCMC(f = NL, p = log(1:4), niter = 10000,
-  outputlength = 1000, jump = 5)
+                 outputlength = 1000, jump = 5)
 plot(MCMCl)   # bad convergence
 cumuplot(as.mcmc(MCMCl$pars))
 
 MCMCl <- modMCMC (f = NL, p = log(1:4), niter = 10000,
-  outputlength = 1000, jump = 2^(2:5))
+                  outputlength = 1000, jump = 2^(2:5))
 plot(MCMCl)   # better convergence but CHECK it!
 pairs(MCMCl)
 colMeans(log(MCMCl$pars))
 sd(log(MCMCl$pars))
 
-MCMCl <- modMCMC (f = NL, p = rep(1, 4), niter = 5000, outputlength = 1000,
-         jump = 5, updatecov = 100)
+MCMCl <- modMCMC (f = NL, p = rep(1, 4), niter = 5000, 
+                  outputlength = 1000, jump = 5, updatecov = 100)
 plot(MCMCl)
 colMeans(log(MCMCl$pars))
 sd(log(MCMCl$pars))

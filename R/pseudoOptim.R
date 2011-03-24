@@ -6,6 +6,9 @@ pseudoOptim <- function (f, p, ..., lower, upper, control = list() ) {
 
   ## check input
   npar  <- length(p)
+  if (npar == 1)
+      stop("number of parameters to estimate should be > 1 in pseudoOptim")
+
   if (! all(is.finite(lower))) stop("lower cannot be Inf or -Inf")
   if (! all(is.finite(upper))) stop("upper cannot be Inf or -Inf")
   if (length(lower) != npar & length(lower)!= 1)

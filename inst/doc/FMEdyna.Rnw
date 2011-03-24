@@ -20,10 +20,10 @@
 \newcommand{\rs}{\textbf{\textsf{rootSolve }}}
 \newcommand{\R}{\proglang{R}}
 
-\title{\proglang{R}~Package \fme: Inverse Modelling, Sensitivity,
+\title{\proglang{R} Package \fme: Inverse Modelling, Sensitivity,
   Monte Carlo -- Applied to a Dynamic Simulation Model}
 
-\Plaintitle{R~Package FME: Inverse Modelling, Sensitivity,
+\Plaintitle{R Package FME: Inverse Modelling, Sensitivity,
   Monte Carlo -- Applied to a Dynamic Simulation Model}
 
 
@@ -154,17 +154,17 @@ integration are returned, packed as a data.frame.
 
 <<>>=
 solveBact <- function(pars, times=seq(0,50,by=0.5)) {
-  derivs <- function(t,state,pars) { # returns rate of change
-    with(as.list(c(state,pars)), {
+  derivs <- function(t, state, pars) { # returns rate of change
+    with(as.list(c(state, pars)), {
 
-      dBact =  gmax*eff*Sub/(Sub+ks)*Bact - dB*Bact - rB*Bact
-      dSub  = -gmax    *Sub/(Sub+ks)*Bact + dB*Bact
-      return(list(c(dBact,dSub)))
+      dBact <-  gmax*eff*Sub/(Sub+ks)*Bact - dB*Bact - rB*Bact
+      dSub  <- -gmax    *Sub/(Sub+ks)*Bact + dB*Bact
+      return(list(c(dBact, dSub), TOC = Bact + Sub))
     })
  }
  state   <- c(Bact = 0.1, Sub = 100)
  ## ode solves the model by integration...
- return(as.data.frame(ode(y=state,times=times,func=derivs,parms=pars)))
+ return(ode(y = state, times = times, func = derivs, parms = pars))
 }
 @
 
@@ -178,13 +178,11 @@ out <- solveBact(pars)
 and output plotted as:
 
 <<label=ode,include=FALSE>>=
-plot(out$time,out$Bact,ylim=range(c(out$Bact,out$Sub)),
-     xlab="time, hour",ylab="mol C/m3",type="l",lwd=2)
-lines(out$time,out$Sub,lty=2,lwd=2)
-lines(out$time,out$Sub+out$Bact)
+matplot(out[,1], out[,-1], type = "l", lty = 1:3, lwd = c(2, 2, 1),
+   col = "black", xlab = "time, hour", ylab = "mol C/m3")
 
-legend("topright",c("Bacteria","Glucose","TOC"),
-       lty=c(1,2,1),lwd=c(2,2,1))
+legend("topright", c("Bacteria", "Glucose", "TOC"),
+       lty = 1:3, lwd = c(2, 2, 1))
 @
 
 \setkeys{Gin}{width=0.4\textwidth}
@@ -209,8 +207,8 @@ assigned; here we specify the minimum and maximum values of three
 parameters in a \code{data.frame}:
 
 <<>>=
-parRanges <- data.frame(min=c(0.4,0.4,0.0),max=c(0.6,0.6,0.02))
-rownames(parRanges)<- c("gmax","eff","rB")
+parRanges <- data.frame(min = c(0.4, 0.4, 0.0), max = c(0.6, 0.6, 0.02))
+rownames(parRanges) <- c("gmax", "eff", "rB")
 parRanges
 @
 
@@ -224,8 +222,8 @@ seconds):
 <<>>=
 tout    <- 0:50
 print(system.time(
-sR<-sensRange(func=solveBact,parms=pars,dist="grid",
-                sensvar=c("Bact","Sub"),parRange=parRanges[3,],num=50)
+sR <- sensRange(func = solveBact, parms = pars, dist = "grid",
+       sensvar = c("Bact", "Sub"), parRange = parRanges[3,], num = 50)
 ))
 head(summary(sR))
 @
@@ -236,13 +234,14 @@ each time step (\code{x}).  It is relatively simple to plot the
 ranges, either as $\min \pm sd$ or using quantiles:
 
 <<label=sens,include=FALSE>>=
-par(mfrow=c(2,2))
-plot(summary(sR),xlab="time, hour",ylab="molC/m3",
-    legpos="topright")
-plot(summary(sR),xlab="time, hour",ylab="molC/m3",
-     quant=TRUE,col=c("lightblue","darkblue"),legpos="topright")
-mtext(outer=TRUE,line=-1.5,side=3,"Sensitivity to rB",cex=1.25)
-par(mfrow=c(1,1))
+summ.sR <- summary(sR)
+par(mfrow=c(2, 2))
+plot(summ.sR, xlab = "time, hour", ylab = "molC/m3",
+    legpos = "topright", mfrow = NULL)
+plot(summ.sR, xlab = "time, hour", ylab = "molC/m3", mfrow = NULL,
+     quant = TRUE, col = c("lightblue", "darkblue"), legpos = "topright")
+mtext(outer = TRUE, line = -1.5, side = 3, "Sensitivity to rB", cex = 1.25)
+par(mfrow = c(1, 1))
 @
 
 \setkeys{Gin}{width=0.8\textwidth}
@@ -261,12 +260,13 @@ parameters. Here we use all 3 parameters, and select the latin hypercube
 sampling algorithm.
 
 <<>>=
-Sens2 <- summary(sensRange(func=solveBact,parms=pars,
-             dist="latin",sensvar="Bact",parRange=parRanges,num=100))
+Sens2 <- summary(sensRange(func = solveBact, parms = pars,
+   dist = "latin", sensvar = "Bact", parRange = parRanges, num = 100))
 @
 
 <<label=sens2,include=FALSE>>=
-plot(Sens2,main="Sensitivity gmax,eff,rB",xlab="time, hour",ylab="molC/m3")
+plot(Sens2, main = "Sensitivity gmax,eff,rB", xlab = "time, hour",
+   ylab = "molC/m3")
 @
 
 \setkeys{Gin}{width=0.4\textwidth}
@@ -295,8 +295,8 @@ the effect of a selection of parameters (here all parameters are
 selected) on a selection of variables (here only \code{Bact}).
 
 <<>>=
-SnsBact<- sensFun(func=solveBact,parms=pars,
-                   sensvar="Bact",varscale=1)
+SnsBact<- sensFun(func = solveBact, parms = pars,
+                 sensvar = "Bact", varscale = 1)
 head(SnsBact)
 @
 
@@ -337,7 +337,7 @@ Here
 Sensitivity analysis can also be performed on several variables:
 
 <<>>=
-summary(sensFun(solveBact,pars,varscale=1),var=TRUE)
+summary(sensFun(solveBact, pars, varscale = 1), var = TRUE)
 @
 
 \subsection{Bivariate sensitivity}
@@ -347,7 +347,7 @@ by plotting the sensitivity functions using \R-function \code{pairs},
 and by calculating the correlation.
 
 <<>>=
-cor(SnsBact[,-(1:2)])
+cor(SnsBact[ ,-(1:2)])
 @
 
 <<label=pairs,include=FALSE>>=
@@ -378,9 +378,9 @@ growth rate.
 <<>>=
 SF <- function (pars) {
   out <- solveBact(pars)
-  return(out[nrow(out),2:3])
+  return(out[nrow(out), 2:3])
 }
-CRL <- modCRL(func=SF,parms=pars,parRange=parRanges[1,])
+CRL <- modCRL(func = SF, parms = pars, parRange = parRanges[1,])
 @
 
 <<label=crl,include=FALSE>>=
@@ -408,9 +408,9 @@ according to a multi-normal distribution; they are positively correlated
 (with a correlation = 0.63).
 
 <<>>=
-CRL2 <- modCRL(func=SF,parms=pars,parMean=c("gmax"=0.5,"eff"=0.7),
-               parCovar=matrix(nr=2,data=c(0.02,0.02,0.02,0.05)),
-               dist="norm",sensvar="Bact",num=150)
+CRL2 <- modCRL(func = SF, parms = pars, parMean = c(gmax = 0.5, eff = 0.7),
+               parCovar = matrix(nr = 2, data = c(0.02, 0.02, 0.02, 0.05)),
+               dist = "norm", sensvar = "Bact", num = 150)
 @
 <<label=crl2,include=FALSE>>=
 pairs(CRL2)
@@ -436,8 +436,8 @@ or \emph{identifiability} of sets of parameters.
 <<>>=
 Coll <- collin(SnsBact)
 Coll
-Coll [Coll[,"collinearity"]<20&Coll[,"N"]==4,]
-collin(SnsBact,parset=1:5)
+Coll [Coll[,"collinearity"] < 20 & Coll[ ,"N"] == 4, ]
+collin(SnsBact, parset = 1:5)
 @
 
 The higher the value, the larger the (approximate) linear
@@ -519,17 +519,17 @@ called \code{Mod}:
 Then the modCost will give:
 
 <<>>=
-Dat<- data.frame(name=c("Obs1","Obs1","Obs2","Obs2"),
-                 time=c(1,2,1,2),val=c(50,150,1,2),
-                 err=c(5,15,0.1,0.2))
-Mod <- Mod <- data.frame(time=0:3,Obs1=rep(4,4),Obs2=1:4)
-modCost(mod=Mod,obs=Dat,y="val")
+Dat<- data.frame(name = c("Obs1", "Obs1", "Obs2", "Obs2"),
+             time = c(1, 2, 1, 2), val = c(50, 150, 1, 2),
+             err = c(5, 15, 0.1, 0.2))
+Mod <- data.frame(time = 0:3, Obs1 = rep(4, 4), Obs2 = 1:4)
+modCost(mod = Mod, obs = Dat, y = "val")
 @
 
 in case the residuals are not weighed and
 
 <<>>=
-modCost(mod=Mod,obs=Dat,y="val",err="err")
+modCost(mod = Mod, obs = Dat, y = "val", err = "err")
 @
 
 in case the residuals are weighed by 1/error.
@@ -545,7 +545,7 @@ c(  2,  0.14,    4,  0.21,    6,  0.31,    8,  0.40,
    18,  3.0,    20,  4.5,    22,  6.5,    24,  9.5,
    26, 13.5,    28, 20.5,    30,  29 , 35, 65, 40, 61)
 )
-colnames(Data) <- c("time","Bact")
+colnames(Data) <- c("time", "Bact")
 head(Data)
 @
 
@@ -558,13 +558,13 @@ the function are the current values of the parameters that need to be
 finetuned and their names (or position in \code{par}).
 
 <<>>=
-Objective <- function(x,parset=names(x)) {
-  pars[parset]<- x
-  tout    <- seq(0,50,by=0.5)
+Objective <- function(x, parset = names(x)) {
+  pars[parset] <- x
+  tout    <- seq(0, 50, by = 0.5)
   ## output times
-  out <- solveBact(pars,tout)
+  out <- solveBact(pars, tout)
   ## Model cost
-  return(modCost(obs=Data,model=out))
+  return(modCost(obs = Data, model = out))
 }
 @
 
@@ -574,7 +574,7 @@ function \code{collin}, selecting only the output variables at the
 instances when there is an observation.
 
 <<>>=
-Coll <- collin(sF<-sensFun(func=Objective,parms=pars,varscale=1))
+Coll <- collin(sF <- sensFun(func = Objective, parms = pars, varscale = 1))
 Coll
 @
 
@@ -586,8 +586,8 @@ parameters selected.  We add a line at the height of 20, the critical
 value:
 
 <<label=coll, include=FALSE>>=
-plot(Coll,log="y")
-abline(h=20,col="red")
+plot(Coll, log = "y")
+abline(h = 20, col = "red")
 @
 
 \setkeys{Gin}{width=0.4\textwidth}
@@ -615,26 +615,28 @@ algorithm.
 In the following example, parameters are constrained to be > 0
 
 <<>>=
-print(system.time(Fit <- modFit(p=c(gmax=0.5,eff=0.5),
-                  f=Objective,lower=c(0.0, 0.0))))
+print(system.time(Fit <- modFit(p = c(gmax = 0.5, eff = 0.5),
+                  f = Objective, lower = c(0.0, 0.0))))
 summary(Fit)
 @
 
-The best-fit model is run, the model cost function estimated and the
-model outcome compared to data.
+The model is run with the original and the best-fit parameters, 
+the model cost function estimated and the model outcome compared to data.
 
 <<>>=
-pars[c("gmax","eff")]<- Fit$par
-  out   <- solveBact(pars)
+init <- solveBact(pars)
 
-  Cost  <- modCost(obs=Data,model=out)
-  Cost
+pars[c("gmax", "eff")] <- Fit$par
+out   <- solveBact(pars)
+
+Cost  <- modCost(obs = Data, model = out)
+Cost
 @
 
 <<label=fit,include=FALSE>>=
-plot(out$time,out$Bact,ylim=range(out$Bact),
-     xlab="time, hour",ylab="molC/m3",type="l",lwd=2)
- points(Data,cex=2,pch=18)
+plot(out, init, xlab = "time, hour", ylab = "molC/m3", lwd = 2, 
+   obs = Data, obspar = list(cex = 2, pch = 18)) 
+legend ("bottomright", lwd = 2, col = 1:2, lty = 1:2, c("fitted", "original"))
 @
 
 \setkeys{Gin}{width=0.4\textwidth}
@@ -651,7 +653,7 @@ plot(out$time,out$Bact,ylim=range(out$Bact),
 Finally, model residuals are plotted:
 
 <<label=res, include=FALSE>>=
-plot(Cost, xlab="time",ylab="",main="residuals")
+plot(Cost, xlab = "time", ylab = "", main = "residuals")
 @
 \setkeys{Gin}{width=0.4\textwidth}
 \begin{figure}
@@ -696,17 +698,17 @@ The \code{summary} method of the best fit returns several useful values:
 SF<-summary(Fit)
 SF
 SF[]
-Var0<- SF$modVariance
-covIni <-SF$cov.scaled *2.4^2/2
-MCMC<-modMCMC(p=coef(Fit),f=Objective,jump=covIni,
-              var0=Var0,wvar0=1)
+Var0 <- SF$modVariance
+covIni <- SF$cov.scaled *2.4^2/2
+MCMC <- modMCMC(p = coef(Fit), f = Objective, jump = covIni,
+              var0 = Var0, wvar0 = 1)
 @
 
 The \code{plot} method shows the trace of the parameters and, in
 \code{Full} is \code{TRUE}, also the model function.
 
 <<label=mcmcplot, include=FALSE>>=
- plot(MCMC,Full=TRUE)
+ plot(MCMC, Full = TRUE)
 @
 
 \setkeys{Gin}{width=0.4\textwidth}
@@ -777,16 +779,18 @@ distributions:
 \code{Grid, Uniform, Normal, Latinhyper}:
 
 <<label=dist, include=FALSE>>=
-par(mfrow=c(2,2))
-Minmax <- data.frame(min=c(1,2),max=c(2,3))
-rownames(Minmax) <-c("par1","par2")
-Mean   <- c(par1=1.5,par2=2.5)
-Covar  <- matrix(nr=2,data=c(2,2,2,3))
-plot(Unif(Minmax,100),main="Unif",xlim=c(1,2),ylim=c(2,3))
-plot(Grid(Minmax,100),main="Grid",xlim=c(1,2),ylim=c(2,3))
-plot(Latinhyper(Minmax,5),main="Latin hypercube",xlim=c(1,2),ylim=c(2,3))
+par(mfrow = c(2, 2))
+Minmax <- data.frame(min = c(1, 2), max = c(2, 3))
+rownames(Minmax) <- c("par1", "par2")
+Mean   <- c(par1 = 1.5, par2 = 2.5)
+Covar  <- matrix(nr = 2, data = c(2, 2, 2, 3))
+plot(Unif(Minmax, 100), main = "Unif", xlim = c(1, 2), ylim = c(2, 3))
+plot(Grid(Minmax, 100), main = "Grid", xlim = c(1, 2), ylim = c(2, 3))
+plot(Latinhyper(Minmax, 5), main = "Latin hypercube", xlim = c(1, 2),
+     ylim = c(2, 3))
 grid()
-plot(Norm(parMean=Mean,parCovar=Covar,num=1000),main="multi normal")
+plot(Norm(parMean = Mean, parCovar = Covar, num = 1000),
+   main = "multi normal")
 @
 
 \setkeys{Gin}{width=0.8\textwidth}

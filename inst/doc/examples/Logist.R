@@ -68,7 +68,7 @@ pairs(MCMC)
 
 
 MCMC2<- modMCMC(f = ModelCost, p = Fit$par, var0 = var0, lower = c(0, 0),
-                wvar0 = 1, updatecov = 100, ntrydr = 2)
+                wvar0 = 1, updatecov = 100, ntrydr = 2, niter=3000)
 plot(MCMC2, Full = TRUE)
 pairs(MCMC2)
 
