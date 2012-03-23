@@ -125,12 +125,18 @@ obsplot <- function (x, ..., which = NULL, xyswap = FALSE, ask = NULL) {
 
 ## check observed data
     checkobs <- function (obs) {
+      Obs <- obs
       obsname <- colnames(obs) 
         if (! class(obs) %in% c("data.frame", "matrix"))
           stop ("'obs' should be either a 'data.frame' or a 'matrix'")
       DD <- duplicated(obsname)
-      if (sum(DD) > 0)  
-        obs <- mergeObs(obs[,!DD], cbind(obs[,1],obs[,DD]))
+      if (sum(DD) > 0) {   # Karline: changed this to account for more columns 
+        wD <- (1:ncol(obs))[DD]
+        for (id in wD) {
+          Add <- cbind(Obs[,1],Obs[,id]); colnames(Add) <- obsname[c(1,id)]
+          obs <- mergeObs(obs[,!DD], Add)
+        }  
+      }        
       else  if (is.character(obs[,1]) | is.factor(obs[,1])) 
         obs <- convert2wide(obs)
       return(obs)

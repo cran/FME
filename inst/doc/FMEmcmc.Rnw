@@ -31,7 +31,7 @@ MCMC, DRAM,  R}
 
 
 \author{Karline Soetaert\\
-NIOO-CEME\\
+NIOZ Yerseke\\
 The Netherlands
 \And
 Marko Laine \\
@@ -50,11 +50,10 @@ It includes the delayed rejection and adaptive Metropolis algorithm \citep{Haari
 %% in the following format:
 \Address{
   Karline Soetaert\\
-  Centre for Estuarine and Marine Ecology (CEME)\\
-  Netherlands Institute of Ecology (NIOO)\\
+  Royal Netherlands Institute of Sea Research (NIOZ)\\
   4401 NT Yerseke, Netherlands\\
-  E-mail: \email{k.soetaert@nioo.knaw.nl}\\
-  URL: \url{http://www.nioo.knaw.nl/users/ksoetaert}\\
+  E-mail: \email{karline.soetaert@nioz.nl}\\
+  URL: \url{http://www.nioz.nl}\\
   \\
   Marko Laine\\
   Finnish Meteorological Institute\\
@@ -489,9 +488,9 @@ Finally, we test convergence to the original distribution. This can best be done
 by estimating means and covariances of the transformed parameter values.
 <<>>=
 trans <- cbind(MCMC4$pars[ ,1], Banana(MCMC4$pars[ ,1], MCMC4$pars[ ,2]))
-colMeans(trans)    # was:c(0,0)
-sd(trans)          # was:1
-cov(trans)         # 0.9 off-diagonal
+colMeans(trans)     # was:c(0,0)
+apply(trans, 2, sd) # was:1
+cov(trans)          # 0.9 off-diagonal
 @
 
 \clearpage
@@ -577,7 +576,7 @@ Cov <- sF$cov.scaled * 2.4^2/2
 
 print(system.time(
 MCMC <- modMCMC(f = residual, p = Fit$par, jump = Cov, lower = c(0, 0),
-                var0 = mse, wvar0 = 1, prior = Prior, niter = 5000)
+                var0 = mse, wvar0 = 1, prior = Prior, niter = 2000)
 ))
 @
 
@@ -602,7 +601,7 @@ Better convergence is achieved by the adaptive Metropolis, updating the proposal
 every 100 runs (figure \ref{fig:ABMCMC2})
 <<>>=
 MCMC2<- modMCMC(f = residual, p = Fit$par, jump = Cov, updatecov = 100, 
-         lower = c(0, 0), var0 = mse, wvar0 = 1, prior = Prior, niter = 5000) 
+         lower = c(0, 0), var0 = mse, wvar0 = 1, prior = Prior, niter = 2000) 
 @
 <<label=ABMCMC2, include=FALSE>>=
 plot(MCMC2, Full = TRUE)

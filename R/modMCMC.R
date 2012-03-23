@@ -613,10 +613,15 @@ pairs.modMCMC <- function (x, Full = FALSE, which = 1:ncol(x$pars),
 
   labels <- colnames(X)
   dots <- list(...)
-
-  dots$diag.panel  <- if(is.null(dots$diag.panel))  panel.hist else dots$diag.panel
-  dots$lower.panel <- if(is.null(dots$lower.panel)) panel.cor  else dots$lower.panel
-  dots$upper.panel <- if(is.null(dots$upper.panel)) panel.main else dots$upper.panel
+  dotnames <- names(dots)
+  
+  if(! "diag.panel" %in% dotnames)
+    dots$diag.panel  <- panel.hist
+  if(! "lower.panel" %in% dotnames)
+    dots$lower.panel <- panel.cor
+  if (! "upper.panel" %in% dotnames)
+    dots$upper.panel <- panel.main
+    
   dots$gap <- if(is.null(dots$gap)) 0 else dots$gap
   dots$labels <- if(is.null(dots$labels)) labels else dots$labels
 

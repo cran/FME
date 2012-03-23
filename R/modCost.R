@@ -203,7 +203,7 @@ plot.modCost<- function(x, legpos="topleft", ...) {
   dots$xlab <- if(is.null(dots$xlab)) "x" else dots$xlab
   dots$ylab <- if(is.null(dots$ylab)) "weighted residuals" else dots$ylab
   DotsPch   <- if(is.null(dots$pch)) (16:24) else dots$pch
-  dots$pch  <- if(is.null(dots$pch)) (16:24)[x$residuals$name] else dots$pch[x$residuals$name]
+  dots$pch  <- if(is.null(dots$pch)) rep(16:24,length.out=nvar)[x$residuals$name] else rep(dots$pch,length.out=nvar)[x$residuals$name]   # Tom 02/01/2012: changed (16:24)  to rep(16:24,length.out=nvar); same for dots$pch in else part
   DotsCol   <- if(is.null(dots$col)) (1:nvar) else dots$col
   dots$col  <- if(is.null(dots$col)) (1:nvar)[x$residuals$name] else dots$col[x$residuals$name]
 

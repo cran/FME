@@ -53,7 +53,7 @@ pairs(Grid(parRange, 500), main = "Grid")
   \code{\link{seq}} the R-default for generating regular sequences of numbers.
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \keyword{utilities}
 

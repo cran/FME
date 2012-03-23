@@ -268,7 +268,7 @@ cor(SnsBact[,-(1:2)])
 
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \references{
   Soetaert, K. and Herman, P. M. J., 2009. A Practical Guide to Ecological

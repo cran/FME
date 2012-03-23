@@ -317,7 +317,7 @@ Cost(Fit$par)
 
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>}
+  Karline Soetaert <karline.soetaert@nioz.nl>}
 
 \references{
   Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity and

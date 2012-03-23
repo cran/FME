@@ -386,7 +386,7 @@ print(system.time(
 max(abs(mf$par - X))
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>,
+  Karline Soetaert <karline.soetaert@nioz.nl>,
 
   Thomas Petzoldt <thomas.petzoldt@tu-dresden.de>
 }

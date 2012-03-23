@@ -1,7 +1,8 @@
 useDynLib(FME)
 
 export(modCost,sensFun,collin,sensRange,Unif,Norm,Latinhyper,Grid,
-       modFit,modMCMC,pseudoOptim,modCRL,obsplot)
+       modFit,modMCMC,pseudoOptim,modCRL,obsplot,gaussianWeights,
+       cross2long)
 
 S3method("summary",     "modFit")
 S3method("deviance",    "modFit")

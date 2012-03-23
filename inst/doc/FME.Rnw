@@ -21,7 +21,7 @@
 \Keywords{simulation models, differential equations, fitting, sensitivity, Monte Carlo, identifiability, \proglang{R}}
 \Plainkeywords{simulation models, differential equations, fitting, sensitivity, Monte Carlo, identifiability, R}
 
-\author{Karline Soetaert\\Netherlands Institute of Ecology
+\author{Karline Soetaert\\Royal Netherlands Institute of Sea Research
    \And Thomas Petzoldt\\Technische Universit\"at Dresden
 }
 \Plainauthor{Karline Soetaert, Thomas Petzoldt}
@@ -62,11 +62,10 @@ Please refer to the original publication when citing this work.
 
 \Address{
   Karline Soetaert\\
-  Centre for Estuarine and Marine Ecology (CEME)\\
-  Netherlands Institute of Ecology (NIOO)\\
+  Royal Netherlands Institute of Sea Research (NIOZ)\\
   4401 NT Yerseke, The Netherlands \\
-  E-mail: \email{k.soetaert@nioo.knaw.nl}\\
-  URL: \url{http://www.nioo.knaw.nl/users/ksoetaert/}\\
+  E-mail: \email{karline.soetaert@nioz.nl}\\
+  URL: \url{http://www.nioz.nl}\\
 
   Thomas Petzoldt\\
   Institut f\"ur Hydrobiologie\\

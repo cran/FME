@@ -14,14 +14,19 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
   if("modCost" %in% class(yRef))  {
     Res    <- yRef$residuals
     ynames <- Res$name
-    yRef <- cbind(Res$x, Res$mod)
+    YNAMES <- as.matrix(unique(ynames))                                                 # changed on 01-12-2011 (Tom): rearrangement of residual matrix to put costs of same var together
+    iRes <- unlist(apply(YNAMES,MARGIN=1,function(x) which(Res[,"name"]==x)))              # (cf. modcost(... cost=cost) where residuals for different cost calculations are appended but not 
+    yRef <- cbind(Res$x[iRes], Res$mod[iRes])                                           # sorted by variable)
+    ynames <- ynames[iRes]
     names(yRef) <- ynames
     Type <- 2
     sensvar <- NULL   # input of sensvar not allowed for modCost type
 
     Solve <- function(parms) {
       Res<- func(parms, ...)$residuals
-      cbind(Res$x, Res$mod)
+      YNAMES <- as.matrix(unique(Res[,"name"]))                                           # changed on 01-12-2011 (Tom): for same reason as above
+      iRes <- unlist(apply(YNAMES,MARGIN=1,function(x) which(Res[,"name"]==x)))              # 
+      cbind(Res$x[iRes], Res$mod[iRes])
     }
 
   }
@@ -91,11 +96,11 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
 
   if (is.null(parscale))
     parscale <- pp
-  else parscale<-rep(parscale, npar)
+  else parscale<-rep(parscale, length.out=npar)              #changed 21/10/2011 (Karline, Tom)
 
   if (is.null(varscale))
     varscale <- yRef
-  else varscale <- rep (varscale, length(yRef))
+  else varscale <- rep (varscale, length.out=length(yRef))   #changed 21/10/2011 (Karline, Tom)
 
   ## 0 is set equal to a very small number
   varscale[varscale == 0] <- tiny*1e-12
@@ -143,7 +148,7 @@ summary.sensFun <- function(object, vars=FALSE, ...) {
 
   pp       <- attributes(object)$pars
   parscale <-  attributes(object)$parscale
-  Sens <- object[, -(1:2)]
+  Sens <- as.matrix(object[, -(1:2)])       # unwanted type conversion when only one parameter is analysed : matrix --> vector
   nout <- nrow(Sens)
   if (vars) { # summaries per variable
     Vars <- object[, 2]
@@ -156,9 +161,9 @@ summary.sensFun <- function(object, vars=FALSE, ...) {
       N    = unlist(aggregate(Sens, by = list(Vars), FUN = length)[, -1])
     )
     out$L2 <- sqrt(out$L2/out$N)
-    out$var <- unique(Vars)
+    out$var <- levels(Vars)                                                     # changed 31-01-2012 (Tom): used to be unique(vars) => problem: aggregate orders according to levels, not first appearance (unique does)
     np <- length(pp)
-    nv <- length(unique(Vars))
+    nv <- nlevels(Vars)                                                         # follows from levels(Vars)
     out <- data.frame(cbind(value = rep(pp, times=rep(nv,np)),
                       scale=rep(parscale, times=rep(nv,np)),out))
   } else {  # global summaries
@@ -263,7 +268,7 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
     ask <- setplotpar(nmdots, dots, length(Select), ask)
 
   } else {
-    dots$ylim <- if(is.null(dots$ylim)) range(x[,-(1:2)])
+    dots$ylim <- if(is.null(dots$ylim)) range(x[,-(1:2)],na.rm=T)
     Ylim      <- FALSE
     Allvars   <- TRUE
     if (is.null(ask))
@@ -287,21 +292,23 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
       if (TYP == 1)
         ii <- ((i-1) * nx + 1):(i*nx)
       else
-        ii <- (nx[i] + 1):nx[i + 1]
+        ii <- (nx[i] + 1):nx[i + 1]       # sensFun calculates total amount of observations per variable in nx => plot now assumes they are grouped together,
+                                          # which is not the case when using modcost with additional costs => sens object contains appended matrices for each
+                                          # modcost calculation (residuals are also appended in one matrix in modcost function)
       is <- c(is, ii)
     }
-    dots$xlim <- range(x[is, 1])
+    dots$xlim <- range(x[is, 1],na.rm=T)
   }
   for (i in Select){
     if (TYP == 1)
-      ii <- ((i - 1)*nx):(i*nx)
+      ii <- ((i - 1)*nx + 1):(i*nx)       # changed (addition of +1; by Karline & Tom 21/10/2011)
     else
       ii <- (nx[i] + 1):nx[i + 1]
     if (Main)
       if (! Allvars) dots$main <- var[i] else dots$main <- "All variables"
 
     sens<- x[ii,]
-    if (Ylim)  dots$ylim <- range(sens[-(1:2)])
+    if (Ylim)  dots$ylim <- range(sens[-(1:2)],na.rm=T)
 
     if (st==1)
       do.call("matplot",c(alist(sens$x, as.matrix( sens[, -(1:2)])), dots))
@@ -310,9 +317,9 @@ plot.sensFun<- function(x, which = NULL, legpos = "topleft", ask = NULL, ...) {
     if (Allvars) st <- st + 1
   }
   if (! is.na(legpos))
-    legend(legpos, names(x[,-(1:2)]), col = dots$col, lty = dots$lty, 
-           lwd = dots$lwd, pch = dots$pch)
-
+    legend(legpos, names(x)[-(1:2)], col = dots$col, lty = dots$lty,   #  changed Tom 05/12/2011:  used to read   "legend(legpos, names(x[,-(1:2)]), col = dots$col, lty = dots$lty,"
+           lwd = dots$lwd, pch = dots$pch)                             #                                                          _________________
+                                                                       #  type conversion of data.frame to vector in case of only 1 analysed parameter invalidates this code
 }
 
 ## -----------------------------------------------------------------------------

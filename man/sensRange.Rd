@@ -299,7 +299,7 @@ plot(Sens2, xlab = "time, hour", ylab = "molC/m3", quant = TRUE,
 
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \references{
   Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity

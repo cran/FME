@@ -56,13 +56,21 @@ modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf,
   \item{prior }{prior probability of the parameters, either a function
     that is called as \code{prior(p)} or \code{NULL}; in the latter case
     a non-informative prior is used (i.e. all parameters are equally
-    likely).
+    likely, depending on \code{lower} and \code{upper} within min and max bounds).
   }
   \item{var0 }{initial model variance; if \code{NULL}, it is assumed
-    that the model variance is 1, and the return element from \code{f}
-    is -2*log (probability), else it is assumed that the return element
+    that the model variance is \code{1}, and the return element from \code{f}
+    is -2*log (probability). If it has a value, it is assumed that the return element
     from \code{f} contain the model residuals or a list of class
-    \code{modFit}.  See details.
+    \code{modFit}.  See details. Good options for \code{var0} are to use 
+    the modelvariance (\code{modVariance}) as returned by the 
+    \code{summary} method of \link{modFit}. When this option is chosen, and 
+    the model has several variables, they will all be scaled similarly.
+    See vignette \code{FMEdyna}. In case the model has several variables with 
+    different magnitudes, then it may be better to scale each variable
+    independently. In that case, one can use as \code{var0}, the mean of the 
+    unweighted squared residuals from the model fit as returned from 
+    \link{modFit} (\code{var_ms_unweighted}). See vignette \code{FME}.
   }
   \item{wvar0 }{"weight" for the initial model variance -- see details.
   }
@@ -438,13 +446,13 @@ MCMCl <- modMCMC (f = NL, p = log(1:4), niter = 10000,
 plot(MCMCl)   # better convergence but CHECK it!
 pairs(MCMCl)
 colMeans(log(MCMCl$pars))
-sd(log(MCMCl$pars))
+apply(log(MCMCl$pars), 2, sd)
 
 MCMCl <- modMCMC (f = NL, p = rep(1, 4), niter = 5000, 
                   outputlength = 1000, jump = 5, updatecov = 100)
 plot(MCMCl)
 colMeans(log(MCMCl$pars))
-sd(log(MCMCl$pars))
+apply(log(MCMCl$pars), 2, sd)
 
 ## =======================================================================
 ## Fitting a Monod (Michaelis-Menten) function to data
@@ -507,7 +515,7 @@ points(Obs, pch = 16, cex = 1.5)
 
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
   
   Marko Laine <Marko.Laine@fmi.fi>
 }

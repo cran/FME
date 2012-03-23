@@ -75,7 +75,7 @@ pairs(Norm(parCovar = parCovar, parMean = parMean, parRange = Ranges,
 
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \keyword{utilities}
 

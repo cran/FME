@@ -63,7 +63,7 @@ pairs(Latinhyper(parRange, 100), main = "Latin hypercube")
     regular grid.
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \keyword{utilities}
 

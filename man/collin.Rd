@@ -191,7 +191,7 @@ collin(sensFun(Objective, P, varscale = 1))
 
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \references{
   Brun, R., Reichert, P. and Kunsch, H. R., 2001.

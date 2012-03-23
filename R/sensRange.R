@@ -359,8 +359,8 @@ plot.summary.sensRange<-function(x, xyswap = FALSE, which = NULL,
       }
     
       # plotting parameters for deSolve output 1 (opens a plot)
-      Dotmain   <- extractdots(dotmain, i)
-      Dotpoints <- extractdots(dotpoints, 1)
+      Dotmain   <- extractdots(dotmain, ij)
+      Dotpoints <- extractdots(dotpoints, ij)
       
       Xlog <- Ylog <- FALSE
       if (! is.null(Dotmain$log)) { 

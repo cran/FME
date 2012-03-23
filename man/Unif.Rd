@@ -60,7 +60,7 @@ pairs(Unif(parRange, 100), main = "Uniformly random")
 
 }
 \author{
-  Karline Soetaert <k.soetaert@nioo.knaw.nl>
+  Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \keyword{utilities}
 
