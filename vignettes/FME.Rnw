@@ -1,0 +1,1322 @@
+\documentclass[article,nojss]{jss}
+\DeclareGraphicsExtensions{.pdf,.eps,.jpg}
+
+\usepackage{amsmath}
+
+
+\newcommand{\fme}{\pkg{FME }}
+\newcommand{\ds}{\pkg{deSolve }}
+\newcommand{\rs}{\pkg{rootSolve }}
+\newcommand{\bs}{\pkg{bvpSolve }}
+\newcommand{\rr}{\proglang{R }}
+\newcommand{\FME}{\pkg{FME}}
+\newcommand{\DS}{\pkg{deSolve}}
+\newcommand{\RS}{\pkg{rootSolve}}
+\newcommand{\R}{\proglang{R}}
+
+
+\title{Inverse Modelling, Sensitivity and Monte Carlo Analysis in \proglang{R} Using Package \pkg{FME}}
+\Plaintitle{Inverse Modelling, Sensitivity and Monte Carlo Analysis in R Using Package FME}
+
+\Keywords{simulation models, differential equations, fitting, sensitivity, Monte Carlo, identifiability, \proglang{R}}
+\Plainkeywords{simulation models, differential equations, fitting, sensitivity, Monte Carlo, identifiability, R}
+
+\author{Karline Soetaert\\Royal Netherlands Institute of Sea Research
+   \And Thomas Petzoldt\\Technische Universit\"at Dresden
+}
+\Plainauthor{Karline Soetaert, Thomas Petzoldt}
+
+\Volume{33}
+\Issue{3}
+\Month{January}
+\Year{2010}
+\Submitdate{2009-09-22}
+\Acceptdate{2010-01-18}
+
+\Abstract{
+Mathematical simulation models are commonly applied to analyze experimental
+or environmental data and eventually to acquire predictive capabilities.
+Typically these models depend on poorly defined, unmeasurable parameters that
+need to be given a value. Fitting a model to data, so-called inverse modelling,
+is often the sole way of finding reasonable values for these parameters.
+There are many challenges involved in inverse model applications, e.g., the
+existence of non-identifiable parameters, the estimation of parameter
+uncertainties and the quantification of the implications of these
+uncertainties on model predictions.
+
+The \R~package \fme is a modeling package designed to confront a
+mathematical model with data. It includes algorithms for sensitivity and
+Monte Carlo analysis, parameter identifiability, model fitting and provides a
+Markov-chain based method to estimate parameter confidence intervals.
+Although its main focus is on mathematical systems that consist of
+differential equations, \fme can deal with other types of models.
+In this paper, \fme is applied to a model describing the dynamics of the
+HIV virus.
+
+\textbf{Note:} The original version of this vignette
+has been published as \citet{FME} in the Journal of
+Statistical Software, \url{http://www.jstatsoft.org/v33/i03}.
+Please refer to the original publication when citing this work.
+}
+
+
+\Address{
+  Karline Soetaert\\
+  Royal Netherlands Institute of Sea Research (NIOZ)\\
+  4401 NT Yerseke, The Netherlands \\
+  E-mail: \email{karline.soetaert@nioz.nl}\\
+  URL: \url{http://www.nioz.nl}\\
+
+  Thomas Petzoldt\\
+  Institut f\"ur Hydrobiologie\\
+  Technische Universit\"at Dresden\\
+  01062 Dresden, Germany\\
+  E-mail: \email{thomas.petzoldt@tu-dresden.de}\\
+  URL: \url{http://tu-dresden.de/Members/thomas.petzoldt/}
+}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
+%% need no \usepackage{Sweave}
+%\VignetteIndexEntry{1. Inverse Modelling, Sensitivity and Monte Carlo Analysis in R Using Package FME}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
+\begin{document}
+\SweaveOpts{engine=R,eps=FALSE}
+\SweaveOpts{keep.source=TRUE}
+
+<<preliminaries,echo=FALSE,results=hide>>=
+library("FME")
+options("prompt" = "R> ", "continue" = "+  ")
+options(width=80)
+set.seed(1257)
+@
+
+\maketitle
+
+\section{Introduction}
+
+Mathematical models are used to study complex dynamic systems in many
+research fields, such as the biological, chemical, physical sciences, in
+medicine or pharmacy, economy and so on.
+Based on (mass) conservation principles, these models often consist of
+differential equations, which formalize the exchange of material, individuals,
+energy or other quantities between model compartments (the state variables).
+As these models frequently describe exchanges in time, they are often referred to
+as `dynamic' models, where time is the independent variable.
+
+Several methods to solve differential equations have recently been
+implemented in the software \rr \citep{R2009}. They are included in package \ds
+\citep{deSolve} which contains functions to integrate initial value problems
+of ordinary and partial differential equations, of delay differential equations,
+and differential algebraic equations,
+(among them most of the \pkg{ODEPACK} solvers, \citealt{odepack}), in
+package \pkg{ddesolve} \citep{ddesolve} which provides a solver for
+delay differential equations; package \bs \citep{bvpSolve} which solves
+boundary value problems and package \rs \citep{rootSolve}, offering functions
+to estimate a system's steady-state (i.e., time-invariant) condition and
+to perform stability analysis.
+
+In addition, several utility packages have been created to help in
+the modelling process. For instance, package \pkg{simecol} \citep{simecol}
+provides a complete environment for solving and running dynamic models,
+\pkg{GillespieSSA} \citep{GillespieSSA} implements the Gillespie Stochastic
+Simulation Algorithm, \pkg{ReacTran} \citep{ReacTran} includes functions
+that describe (physical) transport in one, two or three dimensions.
+The \R~package \pkg{AquaEnv} \citep{AquaEnv} offers
+building blocks for pH and carbonate chemistry modelling, package \pkg{nlmeODE}
+\citep{nlmeODE} includes pharmacokinetics models.
+Because of these efforts, \rr is emerging more and more as a powerful environment
+for dynamic simulations \citep{Petzoldt03, Soetaert08}.
+
+Quantitative mathematical models depend on constant parameters, many of which
+are poorly known and cannot be measured.
+Thus, one essential step in the modelling process is model calibration, during
+which these parameters are estimated by fitting the model to data. This
+application of a model is also known as `inverse' modelling, in contrast
+to `forward' model applications, in which the model is used for
+forecasting or hypothesis testing.
+As the model equations are generally nonlinear, parameter estimation constitutes a
+non-linear optimization problem, where the objective is to find parameter
+values that minimise a measure of badness of fit, usually a least squares
+function, or a weighted sum of squared residuals.
+\rr contains both local and global search algorithms that are suitable
+for nonlinear optimization, in its base package \citep{R2009} or in
+dedicated packages \citep{minpack}.
+
+Apart from finding the \emph{global} minimum, there exist many other
+challenges in inverse modelling.
+Many models comprise non-identifiable parameters which cannot be
+unambiguously determined with sufficient precision \citep{Vajda}.
+Such non-identifiability is manifested by functionally related parameters,
+such that the effect of altering one parameter can be, at least partly,
+undone by altering some other parameter(s). This type of
+overparametrization is common for complex models and especially in
+ecological modelling nearly unavoidable \citep{Mieleitner2006}.
+In order for the data fitting algorithms to converge, and for the parameters
+to be estimated with reasonable precision, the parameter set must be
+\emph{identifiable}.
+
+In addition, it is not only important to locate the best parameter values, but
+also to provide an estimate of the parameter \emph{uncertainty}, and to quantify the
+effects of that uncertainty on other, unobserved, variables. The latter is
+necessary to evaluate the robustness of model-based predictions in the light
+of uncertain parameters. In addition, modelers do not necessarily want good
+estimates of the parameters; sometimes derived quantities are the object of
+interest.
+
+Finally, although the methods from \R's packages are efficient in solving a
+variety of differential equations, the computing time
+for solving these models is significantly larger than for a typical statistical
+application. Therefore, it becomes important to keep the number of runs to
+a minimum. This is especially necessary for Markov chain Monte Carlo (MCMC)
+methods, which generally require to run the model in the order of
+thousands of times for it to converge. One approach is to emulate the output
+of complex model codes and use this as input for formal Bayesian methods
+\citep{BACCO}.
+For computationally expensive simulations that are run online, however,
+the MCMC functions already present in \rr are not the most efficient ones; other
+methods specifically aiming at dynamic models may be more suited \citep{Haario06}.
+
+\fme is a package designed for inverse modelling, sensitivity and Monte Carlo
+analysis. It implements part of the functions from a \proglang{Fortran} simulation
+environment \pkg{FEMME} \citep{FEMME}. It contains functions to
+
+\begin{enumerate}
+\item perform local and global sensitivity analysis \citep{Brun,
+Soetaert08}, and Monte Carlo analysis,
+\item estimate parameter identifiability
+using the method described in \cite{Brun},
+\item fit a model to data, by providing a consistent interface to \R's
+existing optimization methods; it also includes an implementation of the
+pseudo-random search method \citep{Price77},
+\item run a Markov chain Monte Carlo,
+to estimate parameter uncertainties. The DRAM method (Delayed Rejection
+Adaptive Metropolis) \citep{Haario06}, which is well suited for use with
+dynamic models is implemented.
+\end{enumerate}
+
+Most of the functions have suitable methods for printing and visualization.
+
+In this paper, the potential of \fme for inverse modelling is demonstrated by
+means of a simple 3-compartment dynamic model from the
+biomedical sciences that describes the dynamics of the HIV virus, responsible
+for the acquired immunodeficiency syndrome (AIDS).
+This model is chosen because it is relatively simple and
+its algebraic identifiability properties have
+been investigated by \citet{Xia} and \citet{Wu}. Also, the study of viral
+infection is of considerable interest in aquatic sciences, where viruses
+are deemed important factors in biogeochemical cycles, and
+causing death in a variety of organisms \citep{Suttle}.
+
+Similarly as in \citet{Wu} the algorithms from \fme are tested on simulated
+data to which random noise is added.
+Parameter estimation is done in several steps.
+First, the parameters to which the model is sensitive are identified and
+selected. Then an identifiability analysis allows to evaluate which
+set of model parameters can be estimated based on available observations.
+After fitting these parameters to the data, their uncertainty given the data
+is assessed using an MCMC method.
+Finally, by means of a sensitivity analysis the consequences of the uncertain
+parameters on the unobserved (latent) variables is calculated.
+
+Although \fme is used here with a dynamic compartment model, it can work
+with any type of model that calculates a response as a function
+of input parameters. \fme is available from the Comprehensive
+\proglang{R} Archive Network at \url{http://CRAN.R-project.org/package=FME}.
+
+\section{The test model}
+
+The example models the dynamics of the HIV virus in human blood cells (Figure~\ref{fig:hiv})
+%% This part of the code is not visible -could create this off-line
+\setkeys{Gin}{width=0.5\textwidth}
+\begin{figure}
+\begin{center}
+\includegraphics{FME-HIV}
+%<<fig=TRUE,echo=FALSE>>=
+%require(diagram)
+%par(mar=c(0,0,0,0))
+%cex1 <- 1.5
+%openplotmat()
+%names <- c("T cells (T)","","Infected (I)","Virus (V)")
+
+%pos <- matrix(nc=2,byrow=TRUE,
+%  data=c(0.25,0.75,0.45,0.5, 0.85,0.5,0.25,0.25))
+%M<-matrix(nr=4, byrow=TRUE, data= c(0,0,0,0,
+%                                    1,0,0,1,
+%                                    0,1,0,0,
+%                                    0,0,1,0))
+%arr.length<-M
+%M[[2,1]]<- M[[2,4]] <-""
+%M[[3,2]]<-"beta~T~V"
+%M[[4,3]]<-"delta~I"
+
+%pp <- straightarrow (pos[1,]+c(0,0.2), pos[1,],arr.pos=0.4,arr.type="triangle")
+%text(pp[1]+0.035,pp[2],expression(lambda),cex=cex1)
+%pp<-bentarrow(pos[1,],pos[1,]-c(0.15,0.15), arr.pos=1,arr.type="triangle")
+%text(pp[1]+0.05,pp[2],expression(rho~ T),cex=cex1)
+%mv <- pos[4,]
+%pp<-bentarrow(mv,mv-c(0.12,0.15), arr.pos=1,arr.type="triangle")
+%text(pp[1]+0.05,pp[2],"c V",cex=cex1)
+
+%arr.length[]<-0.4
+%arr.length[[2,1]]<- arr.length[[2,4]] <-0
+
+%pp<-plotmat(M,pos=pos,curve=0,name=names,lwd=1,cex=cex1,
+%            box.lwd=2,box.size=c(0.1,0,0.1,0.085),arr.type="triangle",
+%            box.type=c("square","none","square","circle"),  dr=0.001,
+%            box.prop=c(0.5,0.5,0.5,1),arr.lwd=2,arr.length=arr.length,
+%            arr.pos=0.4,add=TRUE, box.cex=1.45)
+%text(pos[4,1]+0.12,pos[4,2]+0.02,"*n",cex=cex1)
+%par(mar=c(5.1,4.1,4.1,2.1))
+%@
+\end{center}
+\caption{Schematic representation of the HIV test model.}
+\label{fig:hiv}
+\end{figure}
+
+The model describes three components, comprising the number of uninfected
+($T$) and infected ($I$) CD4+ T lymphocytes, and the number of free
+virions ($V$).  It consists of three differential equations:
+
+\begin{align}
+\frac{dT}{dt} &= \lambda - \rho T - \beta T V\\
+\frac{dI}{dt} &= \beta T V - \delta I\\
+\frac{dV}{dt} &= n \delta I - c V - \beta T V
+\end{align}
+
+with initial conditions (numbers at $t=0$):
+
+\begin{align*}
+ T(0) &= T_0\\
+ I(0) &= I_0\\
+ V(0) &= V_0
+\end{align*}
+
+These equations express the rate of change of the components ($\frac{d.}{dt}$) as
+a sum of the sources minus the sinks. Uninfected cells are created from sources
+within the body (e.g., the thymus) at rate
+$\lambda$, they die off at a constant rate $\rho$, and become infected.
+The latter process
+is proportional to the product of the number of uninfected cells and the
+number of virions, by a parameter ($\beta$).
+$\delta$ is the death rate of infected cells, and
+$n$ the number of virions that are released during lysis of one
+infected cell (the burst size);
+$c$ is the rate at which virions disappear.
+
+In practical cases, the parameters from this model are estimated based on
+clinical data obtained from individual patients.
+As it is more costly to measure the number of infected cells, $I$,
+\citep{Xia}, this compartment is often not monitored. The occurrence of
+unobserved variables is very common in mathematical models.
+
+Here we assume that both the viral load and the number of healthy
+CD4+ T~cells have been measured; the CD4+ T~cells at 4 days intervals,
+the viral load at a higher frequency.
+
+Without measurements of $I$, its initial condition, $I_0$, is
+not available. Therefore, it is estimated using equation (3) as:
+
+\[
+ I_0 = \frac{V'_0 + c V_0}{n \delta}\\
+\]
+
+where $V'_0$ is the first derivative of the number of virions, estimated at the
+initial time. This can be evaluated e.g., by fitting a spline through the initial
+points \citep{Wu} or by simple differencing of the first observed data points.
+
+\subsection[Implementation in R]{Implementation in \proglang{R}}
+
+In \R, this model is implemented as a function (\code{HIV_R}) that takes as input the
+parameter values (\code{pars}) and the initial conditions $V_0, V'_0, T_0$, here
+called \code{V_0, dV_}0 and \code{T_0} and that returns the model solution at
+selected time points.
+
+Two versions of the model are given.
+
+The first, \code{HIV_R} consists only of \proglang{R}~code.
+The function contains the derivative function \code{derivs},
+required by the integration routine (see help of \DS). It calculates the rate
+of change of the three state variables (\code{dT, dI, dV}) and an output
+variable, the logarithm of the number of virions (\code{logV}). Viral counts
+are often represented logarithmically \citep{Wu}.
+After initialising the
+state variables (\code{y}), and specifying the output times (\code{times}),
+the model is integrated using \ds function \code{ode} and the output returned
+as a \code{data.frame}.
+
+<<>>=
+HIV_R <- function (pars, V_0 = 50000, dV_0 = -200750, T_0 = 100) {
+
+  derivs <- function(time, y, pars) {
+    with (as.list(c(pars, y)), {
+      dT <- lam - rho * T - bet * T * V
+      dI <- bet * T * V - delt * I
+      dV <- n * delt * I - c * V - bet * T * V
+
+      return(list(c(dT, dI, dV), logV = log(V)))
+    })
+  }
+
+  # initial conditions
+  I_0   <- with(as.list(pars), (dV_0 + c * V_0) / (n * delt))
+  y     <- c(T = T_0, I = I_0, V = V_0)
+
+  times <- c(seq(0, 0.8, 0.1), seq(2, 60, 2))
+  out   <- ode(y = y, parms = pars, times = times, func = derivs)
+
+  as.data.frame(out)
+}
+@
+
+In the second version of the model (\code{HIV}), the derivative function has
+been replaced by a subroutine written in \proglang{Fortran}, and presented to \proglang{R}
+as a DLL (a dynamic link library \code{FME.dll} on Windows respectively a shared library \code{FME.so} on other
+operating systems). This DLL contains two subroutines:
+\code{derivshiv} estimates the derivatives, and \code{inithiv} initialises the
+model. How to write model code in
+compiled languages is explained in vignette (``compiledCode'') \citep{compiledCode}
+in package \DS.
+The \proglang{Fortran} code required for this second implementation can be found in the
+appendix; the DLL is part of the \fme package.
+
+<<>>=
+HIV <- function (pars, V_0 = 50000, dV_0 = -200750, T_0 = 100) {
+
+  I_0 <- with(as.list(pars), (dV_0 + c * V_0) / (n * delt))
+  y <- c(T = T_0, I = I_0, V = V_0)
+
+  times <- c(0, 0.1, 0.2, 0.4, 0.6, 0.8, seq(2, 60, by = 2))
+  out <- ode(y = y, parms = pars, times = times, func = "derivshiv",
+    initfunc = "inithiv", nout = 1, outnames = "logV", dllname = "FME")
+
+  as.data.frame(out)
+}
+@
+
+After assigning values to the parameters and running the model, output is
+plotted (Figure~\ref{fig:ode}).
+It takes about 20 times longer to run the pure-\proglang{R} version, compared to the compiled
+version. As this will be significant when running the model multiple times,
+in what follows, the fast version (\code{HIV}) will be used.
+
+<<>>=
+pars <- c(bet = 0.00002, rho = 0.15, delt = 0.55, c = 5.5, lam = 80, n = 900)
+out <- HIV(pars = pars)
+@
+
+<<label=ode,include=FALSE>>=
+par(mfrow = c(1, 2))
+plot(out$time, out$logV, main = "Viral load", ylab = "log(V)",
+  xlab = "time", type = "b")
+plot(out$time, out$T, main = "CD4+ T", ylab = "-", xlab = "time", type = "b")
+par(mfrow = c(1, 1))
+@
+
+\setkeys{Gin}{width=\textwidth}
+\begin{figure}
+\begin{center}
+<<label=odefig,fig=TRUE,echo=FALSE,height=4,width=8.667>>=
+<<ode>>
+@
+\end{center}
+\caption{Viral load and number of uninfected T~cells as a function of time.}
+\label{fig:ode}
+\end{figure}
+
+\subsection{Observed data}
+
+The \fme algorithms will be tested on simulated data.
+Such synthetic experiments are often used to study parameter identifiability or
+to test fitting routines.
+
+They involve the following steps: first ``data'' are generated by applying the
+model with known parameter values. To this output, a normally distributed
+error, with mean 0 and known standard deviation is added.
+Here the standard deviation is 0.45 for log (viral load) and 4.5 for the T~cell
+counts \citep{Xia}. The data are in a matrix containing the time, the variable
+value and the standard deviation.
+
+The virions have been counted at high frequency:
+
+<<>>=
+DataLogV <- cbind(time = out$time,
+            logV = out$logV + rnorm(sd = 0.45, n = length(out$logV)),
+            sd = 0.45)
+@
+
+The T~cells are recorded at 4-days intervals; \code{[ii]} selects the model output
+that corresponds to these sampling times.
+
+<<>>=
+ii    <- which (out$time %in% seq(0, 56, by = 4))
+DataT <- cbind(time = out$time[ii],
+               T = out$T[ii] + rnorm(sd = 4.5, n = length(ii)),
+               sd = 4.5)
+head(DataT)
+@
+
+\subsection{The model cost function}
+
+The model-data residuals and model cost are central to the parameter
+identifiability, model calibration and MCMC analysis.
+
+Function \code{modCost} estimates weighted residuals of the model output versus
+the data and calculates sums of squared residuals, in an object
+of class \code{modCost}.
+
+For any observed data point, \code{k}, of observed variable \code{l},
+the \emph{weighted and scaled residuals} are estimated as:
+
+\[
+  res_{k,l}=\frac{\mathit{Mod}_{k,l} - \mathit{Obs}_{k,l}}{\mathit{error}_{k,l} \cdot n_l}
+\]
+
+where $\mathit{Mod}_{k,l}$ and $\mathit{Obs}_{k,l}$ are the modeled, respectively
+observed value.
+
+$\mathit{error}_{k,l}$ is a weighing factor that makes the term
+non-dimensional; it can be chosen to be equal to the mean of all measurements,
+the overall standard deviation, or chosen to be a different measurement error
+for each data point \footnote{\code{modCost} assumes the measurement errors to
+be normally distributed and independent. If there exist correlations in the errors
+between the measurements, then \code{modCost} should not be used in the fitting
+or MCMC application, but rather a function that takes in to account the
+data covariances.}.
+Weighing is important if different model variables have different units
+and magnitudes.
+
+Some variables are measured at much higher resolution than
+others. In order to prevent the abundant data set to dominate the analysis,
+the residuals can also be scaled relative to the number of data
+points $n_l$ for each variable \code{l}; by default $n_l$ is $1$.
+
+Sums of these residuals per observed variable (the ``variable'' cost) and the
+total sum of squares (the ``model'' cost) are also estimated in function
+\code{modCost}.
+
+
+For the HIV model example, the residuals and costs are estimated in a
+function (\code{HIVcost}) that takes as input the values of the parameters
+to be tested/fitted.
+The model cost is calculated in three steps. First, the model output, given the
+current parameter values is produced (\code{out}); then the residuals with
+the $\log(V)$ data, in matrix \code{DataLogV}, is estimated (\code{cost});
+argument \code{err = "sd"} specifies the columnname with the weighting factors.
+Finally the cost is updated with the T~cell observations in matrix \code{DataT}.
+Updating is done by passing the previously estimated cost
+(\code{cost = cost}) to function \code{modCost}.
+
+<<>>=
+HIVcost <- function (pars) {
+  out <- HIV(pars)
+  cost <- modCost(model = out, obs = DataLogV, err = "sd")
+  return(modCost(model = out, obs = DataT, err = "sd", cost = cost))
+}
+@
+
+The sum of squared residuals is printed, and the residuals of model and data
+plotted, showing the random noise (Figure~\ref{fig:cost}).
+
+<<>>=
+HIVcost(pars)$model
+@
+
+<<label=cost,include=FALSE>>=
+plot(HIVcost(pars), xlab="time")
+@
+
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=costfig,fig=TRUE,echo=FALSE,width=5.5,height=5.5>>=
+plot(HIVcost(pars), xlab="time", legpos="topright")
+@
+\end{center}
+\caption{Residuals of model and pseudodata.}
+\label{fig:cost}
+\end{figure}
+
+\section{Local sensitivity analysis}\label{sec:localsens}
+
+Not all parameters can be finetuned on a certain data set.
+Some parameters have little effect on the model outcome, while other
+parameters are so closely related that they cannot be fitted simultaneously.
+
+Function \code{sensFun} estimates the sensitivity of the model output to
+the parameter values in a set of so-called sensitivity functions
+\citep{Brun, Soetaert08}.
+When applied in conjunction with observed data, \code{sensFun} estimates,
+for each datapoint, the derivative of the corresponding modeled value with
+respect to the selected parameters.
+A schema of what these sensitivity functions represent can be found in
+Figure~\ref{fig:sf}.
+
+<<label=sf, include=FALSE, echo = FALSE>>=
+# Local sensitivity analysis of bet on logV - code is hidden in text
+ref  <- HIV(pars)
+pert <- HIV (pars*c(1.1,1,1,1,1,1))
+ss   <- (pert$logV-ref$logV)/pert$logV
+plot(ref$time,ref$logV,type="l",lwd=2,xlab="time",ylab="logV",
+  main="local sensitivity, parameter bet")
+lines(pert$time,pert$logV,lwd=2,lty=2)
+arrseq <- seq(9,36,6)#c(10,30,50,70,90)
+arrows(ref$time[arrseq],ref$logV[arrseq],
+  ref$time[arrseq],pert$logV[arrseq], length= 0.075)
+
+legend("bottomright",c("bet=2e-5","bet=2.2e-5"),lty=c(1,2))
+par(new=TRUE)
+par(fig=c(0.5,0.99,0.5,0.95))
+plot(ref$time,ss,type="l",lwd=2,
+   xlab="",ylab="",axes=FALSE,frame.plot=TRUE)
+points(ref$time[arrseq],ss[arrseq])
+title("Sensitivity functions ",line=0.5,cex.main=1)
+par(fig=c(0,1,0,1))
+@
+
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sf,fig=TRUE,echo=FALSE,width=5.5,height=5.5>>=
+<<sf>>
+@
+\end{center}
+\caption{The sensitivity functions of \code{logV} to parameter bet, as a function
+of time (upper right) are the (weighted) differences of the perturbed output
+(at \code{bet = 2.2e-5}) with the nominal output (\code{bet = 2e-5}), main figure;
+the dots in the inset correspond to the arrows in the main figure.}
+\label{fig:sf}
+\end{figure}
+
+In \FME,  normalised, dimensionless sensitivities of
+model output to parameters are in a sensitivity matrix whose
+(i,j)$^{th}$ element $S_{i,j}$ contains:
+
+\[
+  \frac{\partial y_i}{\partial \Theta _j}\cdot \frac{w_{\Theta _j}} {w_{y_i}}
+\]
+
+where $y_i$ is an output variable, $\Theta_j$ is a parameter, and
+$w_{y_i}$ is the scaling of variable $y_i$ (usually equal to its value),
+$w_{\Theta_j}$ is the scaling of parameter
+$\Theta_j$ (usually equal to the parameter value).
+
+These sensitivity functions can be collapsed into summary values.
+The higher the absolute sensitivity value, the more important the parameter,
+thus the magnitudes of the sensitivity summary values can be used to rank
+the importance of parameters on the output variables. As it makes no sense
+to finetune parameters that have little effect, this ranking serves to choose
+candidate parameters for model fitting.
+
+In \FME, sensitivity functions are estimated using function \code{sensFun}
+which takes as input the cost function (\code{HIVcost} that returns an instance
+of class \code{modCost}) and the parameter values.
+
+<<>>=
+Sfun <- sensFun(HIVcost, pars)
+summary(Sfun)
+@
+
+%% ThPe: check typography L1 and L2
+Here L1 = $\sum{|S_{ij}|}/n$ and L2 =$\sqrt{\sum(S_{ij}^2)/n}$ are
+the L1 and L2 norm respectively.
+
+Based on these summary statistics
+it is clear that parameter \code{delt} has the least effect on the output
+variables.
+
+The sensitivities of the modelled viral and T~cell counts to the parameter values
+change in time (see Figure~\ref{fig:sf}), thus it makes sense to visualise
+the sensitivity functions as they fluctuate.
+The plots are clearest if produced one per output variable
+(Figure~\ref{fig:sfun}):
+
+<<label=sfun,include=FALSE>>=
+plot(Sfun, which = c("logV", "T"), xlab="time", lwd = 2)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sfunfig,fig=TRUE,echo=FALSE,height=4,width=8.667>>=
+<<sfun>>
+@
+\end{center}
+\caption{Sensitivity functions of model output to parameters.}
+\label{fig:sfun}
+\end{figure}
+
+As their corresponding sensitivity functions are always positive, parameters
+\code{bet, lam}, and \code{n} have a consistent
+positive effect on the number of free virions; higher values of \code{rho}
+consistently decrease \code{logV}. The initial positive effect on viral load
+when increasing viral loss (\code{c}) is caused by its impact on the
+calculated initial condition \code{I_0}.
+
+There is strong similarity in several sensitivity functions for the
+output variable \code{logV}, indicating that the corresponding parameters have
+comparable effect on this output variable.
+If too similar, the joint estimation of these
+parameter combinations may not be possible on these observed data alone.
+The correlation between the sensitivity functions of \code{n} and \code{lam}
+is 1 (not shown), such that exactly the same output of \code{logV} will
+be generated by increasing \code{n}, if \code{lam} is decreased the appropriate
+amount.
+Similar findings were reported in \cite{Wu}, based on an analytical
+analysis of parameter identifiability.
+
+For output variable \code{T} the similarity between parameters \code{lam}
+and \code{n} and \code{bet} is also strong.
+Pairwise relationships are visualised with a \code{pairs} plot. Here we plot
+the sensitivity functions of both variables (Figure~\ref{fig:sfp}) in one figure
+but with different colors;
+it is also instructive to select each variable separately (this can be done
+by means of the \code{which} argument -- not shown).
+
+<<label=sfunp,include=FALSE>>=
+pairs(Sfun, which = c("logV", "T"), col = c("blue", "green"))
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sfunpfig,fig=TRUE,echo=FALSE,width=6,height=6>>=
+<<sfunp>>
+@
+\end{center}
+\caption{Pairwise plot of sensitivity functions.}
+\label{fig:sfp}
+\end{figure}
+
+The sensitivity functions for parameter pairs involving \code{bet}, \code{c}
+and \code{n}, and pair \code{rho} and \code{lam} are strongly correlated,
+with $r^2 > 0.85$.
+
+It should be noted that none of the correlation coefficients is exactly 1 or $-1$,
+(the largest $|r|$ equals $0.995$).
+Therefore, the model comprising both \code{logV} and \code{T}
+data is ``algebraically'' identifiable, as is indeed demonstrated by \cite{Xia}.
+However, it is questionable whether the subtle differences produced in the output
+of some parameters will be sufficient to make them ``practically'' identifiable.
+
+\section{Multivariate parameter identifiability}\label{sec:multipar}
+
+The above \code{pairs} analysis investigated the identifiability of
+sets of \emph{two} parameters. Function \code{collin}
+extends the analysis to all possible parameter combinations, by estimating
+the approximate linear dependence (``collinearity'')
+of parameter sets.
+A parameter set is said to be identifiable, if all parameters within the set
+can be uniquely estimated based on (perfect) measurements. Parameters that
+have large collinearity will not be identifiable
+\footnote{The reverse need not be the case, as unidentifiable parameters may
+also be non-linearly related.}.
+
+The identifiability analysis included in \fme was described in \cite{Brun}.
+For any subset of columns of the sensitivity matrix, collinearity
+ $\gamma$ is defined as:
+%
+\[
+  \gamma= \frac{1}{\sqrt{\min(\mathrm{EV}[\hat{S}^\top\hat{S}])}}
+\]
+%
+where
+%
+\[
+  \hat{S}_{ij} = \frac{S_{ij}}{\sqrt{\sum_j {S_{ij}^2}}}
+\]
+%
+where $\hat{S}$ contains the columns of the sensitivity matrix that
+correspond to the parameters included in the set, $\mathrm{EV}$ estimates the
+eigenvalues.
+The collinearity index equals 1 if the columns are orthogonal, and the set
+is identifiable, it equals infinity if columns in the sensitivity matrix
+are linearly dependent.
+
+A collinearity index $\gamma$ means that a change in the results caused by
+a change in one parameter can be
+compensated by the fraction $1-1/\gamma$ by an appropriate
+change of the other parameters \citep{Omlin}.
+
+If the index exceeds a certain
+value, typically chosen to be 10--15, then the parameter set is poorly
+identifiable \citep{Brun} (any change in one parameter can be undone for
+90 respectively 93\%).
+
+The collinearity for all parameter combinations is estimated by function
+\code{collin}, taking the previously estimated sensitivity functions as argument.
+
+<<>>=
+ident <- collin(Sfun)
+head(ident, n = 20)
+@
+
+In the output, \code{1} and \code{0} denotes that the parameter is included
+respectivity not included in the set; \code{N} is the number of parameters
+in the set.
+
+The first 20 combinations show very large collinearity when parameters
+\code{bet}, \code{rho} and \code{n} are in the parameter set.
+Figure~\ref{fig:coll} shows how the collinearity index increases
+as more and more parameters are included in the set.
+
+<<label=coll,include=FALSE>>=
+plot(ident, log = "y")
+@
+
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=collfig,fig=TRUE,echo=FALSE,width=5.5,height=5.5>>=
+<<coll>>
+@
+\end{center}
+\caption{Collinearity plot.}
+\label{fig:coll}
+\end{figure}
+
+All parameters together have a  collinearity which is too large for them to be
+fitted to the data. Thus, whereas
+\cite{Xia} showed the full parameter set to be algebraically identifiable,
+in practical applications this may not be the case.
+
+<<>>=
+collin(Sfun, parset = c("bet", "rho", "delt", "c", "lam", "n"))
+@
+
+One 5-parameter combination has collinearity lower than 15 (see
+Figure~\ref{fig:coll}), and is therefore possibly identifiable
+\cite[according to][]{Brun}.
+
+<<>>=
+collin(Sfun, N = 5)
+@
+
+We select parameters \code{bet, rho, delt, c,} and \code{lam},
+the 5-parameter combination with the smallest collinearity for fitting.
+Note that this parameter set cannot be identified on either \code{logV} nor
+\code{T} data alone:
+
+<<>>=
+collin(Sfun, parset = c("bet", "rho", "delt", "c", "lam"), which = "logV")
+collin(Sfun, parset = c("bet", "rho", "delt", "c", "lam"), which = "T")
+@
+
+\section{Fitting the model to data}\label{sec:fitmodel}
+
+\rr has several built-in methods for nonlinear data fitting. Whereas the default
+optimization algorithms require one function value (the weighted sum of squares,
+a ``model cost''), other algorithms such as the Levenberg-Marquardt method
+\citep{Press92} need input of a vector of residuals.
+
+To allow using both types of algorithms, a wrapper (\code{modFit}) is provided
+that has a consistent interface, taking as input argument either the vector of
+model-data residuals or an instance of class \code{modCost}.
+
+Function \code{modFit} embraces the functions from \code{optim}, \code{nls},
+and function \code{nlminb}, from \R's base packages \citep{R2009} and
+the Levenberg-Marquardt algorithm from package \pkg{minpack.lm} \citep{minpack}
+In addition to the stochastic simulated annealing method as implemented in
+\code{optim}, another random-based method, the pseudo-random search algorithm
+of Price \citep{Price77, Soetaert08} is implemented in \FME.
+
+
+To fit the HIV model to the data, a new function is needed that takes as
+input the logarithm of all parameter values except \code{n} (which is given a
+fixed value \code{900}), and that returns the model cost.
+
+The log transformation (1) ensures that the parameters remain positive during
+the fitting, and (2) deals with the fact that the parameter values are spread
+over six orders of magnitude (i.e., \code{bet = 2e-5}, \code{lam = 80}).
+Within the function \code{HIVcost2}, the parameters are backtransformed
+(\code{exp(lpars)}).
+
+<<>>=
+HIVcost2 <- function(lpars)
+  HIVcost(c(exp(lpars), n = 900))
+@
+
+After perturbing the parameters\footnote{Perturbation is done mainly for the
+purpose of making the application more challenging.},
+the model is fitted to the data, and best-fit
+parameters and residual sum of squares shown.
+
+<<>>=
+Pars <- pars[1:5] * 2
+Fit <- modFit(f = HIVcost2, p = log(Pars))
+exp(coef(Fit))
+deviance(Fit)
+@
+
+For comparison, the initial model output and the best-fit model are plotted
+against the data (Figure~\ref{fig:fit}).
+
+<<>>=
+ini   <- HIV(pars = c(Pars, n = 900))
+final <- HIV(pars = c(exp(coef(Fit)), n = 900))
+@
+
+<<label=fit,include=FALSE>>=
+par(mfrow = c(1,2))
+plot(DataLogV, xlab = "time", ylab = "logV", ylim = c(7, 11))
+lines(ini$time, ini$logV, lty = 2)
+lines(final$time, final$logV)
+legend("topright", c("data", "initial", "fitted"),
+   lty = c(NA,2,1), pch = c(1, NA, NA))
+plot(DataT, xlab = "time", ylab = "T")
+lines(ini$time, ini$T, lty = 2)
+lines(final$time, final$T)
+par(mfrow = c(1, 1))
+@
+
+\setkeys{Gin}{width=\textwidth}
+\begin{figure}
+\begin{center}
+<<label=fitfig,fig=TRUE,echo=FALSE,height=4,width=8.667>>=
+<<fit>>
+@
+\end{center}
+\caption{Best-fit and initial model run.}
+\label{fig:fit}
+\end{figure}
+
+Approximate estimates of parameter uncertainty can be obtained by
+linearising the model around the best-fit parameters. If $J$ is the
+numerical approximation of the Jacobian, then, based on linear theory,
+the parameter covariance is estimated as $(J^\top J)^{-1}S^2$ where $S^2$ is the
+sum of squared residuals of the best-fit.
+At the best fit, $(J^\top J)\approx 0.5H$, with $H$ the Hessian
+\citep{Press92}. The Hessian is estimated in most of \R's optimization
+functions.
+
+The \code{summary} method of the \code{modFit} function
+estimates these approximate statistical properties (not shown).
+
+\section{MCMC}
+
+The previously applied identifiability analysis (Section~\ref{sec:multipar})
+gives insight into which parameters can be simultaneously estimated,
+given noise-free data and a perfect model (i.e., one that can fit the data perfectly).
+The model fitting (Section~\ref{sec:fitmodel}) provided one ``optimal'' set of parameters,
+that produces the best fit to the measurements in the least squares sense.
+
+However, even for perfectly identifiable parameter sets, the uncertainty may be
+very high or poor estimates may be obtained, if the data have too much noise.
+In practice, all measurements have error, thus it is important to quantify the
+effect of this on the parameter uncertainty.
+
+Bayesian methods can be used to derive the data-dependent probability
+distribution of the parameters.
+Function \code{modMCMC} implements a Markov chain Monte Carlo (MCMC) method that
+uses the delayed rejection and adaptive Metropolis (DRAM) procedure
+\citep{Haario06, Laine08}.
+An MCMC method samples from probability distributions by constructing a Markov
+chain that has the desired distribution as its equilibrium distribution.
+Thus, rather than one parameter set, one
+obtains an ensemble of parameter values that represent the parameter distribution.
+
+In the adaptive Metropolis method, the generation of new candidate parameter values
+is made more efficient by tuning the proposal distribution to the size and
+shape of the target distribution. This is realised by generating new parameters
+with a proposal covariance matrix that is estimated by the parameters generated
+thus far.
+
+During delayed rejection, new parameter values are tried upon rejection
+by scaling the proposal covariance matrix. This provides a systematic remedy
+when the adaptation process has a slow start \citep{Haario06}.
+
+In the implementation in \FME, it is assumed that the prior distribution
+for the parameters $\theta$ is either non-informative or gaussian.
+
+If y, the measurements are defined as:
+%
+\begin{eqnarray*}
+y & = & f(x,\theta) + \xi \\
+\xi & \sim & N\left(0,\sigma^2\right)
+\end{eqnarray*}
+
+where $f(x, \theta)$ is the (nonlinear) model, $x$ are the independent variables,
+$\theta$ the parameters, and $\xi$ is the additive, independent Gaussian
+error, with unknown variance $\sigma^2$.
+Then the posterior for the parameters will be estimated as \citep{Laine08}:
+
+\[
+p\left(\theta | y,\sigma^2\right)\propto \exp\left(-0.5 \cdot \left(\frac{SS(\theta)}{\sigma^2}\right)\right) \cdot
+  p_{pri}(\theta)
+\]
+
+where SS is the sum of squares
+function $SS(\theta)=\sum(y_i-f(x, \theta)_i)^2$, $p_{pri}(\theta)$ is the
+prior distribution of the parameters. For noninformative priors
+$p_{pri}(\theta)$ is constant for all values of $\theta$ (and can be ignored).
+
+The error variance $\sigma^2$ is considered a nuisance parameter
+\citep{Gelman}. A prior distribution needs to be specified and a posterior
+distribution is calculated by \code{modMCMC}.
+For the reciprocal of the error variance ($\sigma^{-2}$), a Gamma
+distribution is used as a prior:
+
+\[
+p_{pri}\left(\sigma^{-2}\right) \sim \Gamma\left(\frac{n_0}{2},\frac{n_0}{2}S_0^2\right)
+\]
+
+At each MCMC step then, the reciprocal of the error variance
+is sampled from a gamma distribution \citep{Gelman}:
+
+\[
+  p\left(\sigma^{-2}|(y,\theta)\right) \sim \Gamma\left(\frac{n_0+n}{2},
+  \frac{n_0 S_0^2+SS(\theta)}{2}\right)
+\]
+
+In function \code{modMCMC}, the corresponding input arguments for this Gamma
+distribution are \code{var0} = $S_0^2$ and \code{n0 = wvar0 * n}, and where
+\code{wvar0} or \code{n0} are input arguments to the function;
+\code{n} is the number of observations.
+Larger values of \code{wvar0} keep the sampled error variance closer to \code{var0}.
+
+The MCMC method is now applied to the example model.
+In order to prevent long burn-in, the algorithm is started with the optimal
+parameter set (\code{Fit\$par}) as returned from the fitting algorithm, while
+the prior error variance \code{var0} is chosen to be the mean of the
+unweighted squared residuals from the model fit (\code{Fit\$var_ms_unweighted});
+one for each observed variable (i.e., one for \code{logV}, one for \code{T}).
+The weight added to this prior is low (\code{wvar0 = 0.1}), such that this
+initial value is not so important.
+
+The proposal distribution (used to generate new parameters) is updated every
+50 iterations (\code{updatecov}).
+The initial proposal covariance (\code{jump}) is based on the approximated
+covariance matrix, as returned by the \code{summary} method of \code{modFit},
+and scaled appropriately \citep{Gelman}.
+
+%% MCMC is rather time consuming, so we don't run this automatically
+%% Set both eval=TRUE if you want to recalculate MCMC.
+<<>>=
+var0 <- Fit$var_ms_unweighted
+cov0 <- summary(Fit)$cov.scaled * 2.4^2/5
+<<eval=FALSE>>=
+MCMC <- modMCMC(f = HIVcost2, p = Fit$par, niter = 5000, jump = cov0,
+                var0 = var0, wvar0 = 0.1, updatecov = 50)
+<<eval=FALSE,echo=FALSE,results=hide>>=
+save(MCMC, file="mcmc.Rdata")
+@
+%% load the pre-calculated data
+<<echo=FALSE,results=hide>>=
+load("mcmc.Rdata")
+@
+
+Before plotting the results, the parameters in the chain are backtransformed;
+a \code{summary} is calculated. Alternatively, it is possible to calculate the
+summary via use of \pkg{coda}'s function summary \citep{coda};
+\code{summary(as.mcmc(MCMC\$pars))} does this; this amongst other also gives a robust
+estimate of the parameter's standard error.
+
+<<echo=FALSE,results=hide>>=
+options(width = 50)
+@
+
+<<>>=
+MCMC$pars <- exp(MCMC$pars)
+summary(MCMC)
+@
+
+The error variances used to generate
+the perturbed data were $4.5^2=20.25$ and $0.45^2=0.2025$ for $T$ and $\log(V)$
+respectively and are to be compared with the mean in the columns labeled \code{sig.var}
+in the summary output. Due to the randomness involved, the used value is never
+exactly retrieved. The example was run 15 times, during which
+the variance sampled varied between 11--42 for $T$ and 0.16--0.33
+for $\log(V)$ respectively.
+
+The MCMC chain is plotted, including the sampled error variances
+(\code{Full=TRUE}):
+
+<<label=mcmc,include=FALSE>>=
+plot(MCMC, Full = TRUE)
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmcfig,fig=TRUE,echo=FALSE,width=5.5,height=5.5>>=
+par(mar=c(4, 4, 3, 1) + .1)
+<<mcmc>>
+@
+\end{center}
+\caption{Results of the MCMC application.}
+\label{fig:mcmc}
+\end{figure}
+
+The traces of the MCMC chain (grey line in Figure~\ref{fig:mcmc}) show that the
+chain has converged (there is no apparent drift). Note the error variances for
+each observed variable (last figure).
+
+The pairs plot (Figure~\ref{fig:mcmc2}) shows the strong relation between
+parameters \code{bet} and \code{c}. This plot visualises the pairwise
+relationship in the upper panel, the correlation
+coefficients in the lower panel, and the marginal distribution for each
+parameter, represented by a histogram, on the diagonal.
+To keep the size of the pairs plot reasonable, only 1000 parameters are
+plotted in the upper panels (\code{nsample = 1000}); but all samples are used
+to generate the histograms on the diagonal, and to estimate the pairwise
+correlations as shown in the lower panel. Note the large correlation between
+parameters \code{bet} and \code{c}.\footnote{Correlations were already large
+in the initial covariance matrix (argument jump). However, the results remain
+the same if a less good initial jump distribution is used.}
+
+<<label=mcmc2,include=FALSE>>=
+pairs(MCMC, nsample = 1000)
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmcfig2,fig=TRUE,echo=FALSE,width=5.5,height=5.5>>=
+pairs(MCMC, nsample = 1000,cex.labels=1.4,cex=0.7)
+@
+\end{center}
+\caption{Pairs plot of the MCMC application.}
+\label{fig:mcmc2}
+\end{figure}
+
+\section{Model prediction}
+
+The effect of the parameter uncertainty on the model output can be estimated
+and visualised with function \code{sensRange}. This function takes as input
+the sample of the parameter probability density function as generated by
+\code{modMCMC}, and which is saved in \code{MCMC\$par}. \code{sensRange} then
+executes the model 100 times, using a random draw of the parameters
+in the chain, and for each run output is saved.
+
+The \code{summary} method estimates mean,
+standard deviation and quantiles based on these outputs, which can be visualised.
+
+<<>>=
+sR <- sensRange(func = HIV, parms = pars, parInput = MCMC$par)
+@
+
+<<label=sr,include=FALSE>>=
+plot(summary(sR), xlab = "time")
+@
+
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=srfig,fig=TRUE,echo=FALSE>>=
+<<sr>>
+@
+\end{center}
+\caption{Sensitivity range based on parameter distribution as generated
+with the MCMC application.}
+\label{fig:sr}
+\end{figure}
+
+The figure (Figure~\ref{fig:sr}) shows amongst other the effect of parameter
+uncertainty on the unobserved variable \code{I}.
+
+It should be noted that these ranges only represent the distribution of the model
+response as a function of the parameter values, generated by the MCMC.
+Another source of error is related to measurement noise as represented
+by the sampled values of the model variance. How this can be included is
+explained in \fme vignette ``\code{FMEother}'' (\code{vignette("FMEother")}).
+
+
+\section{Monte Carlo applications}
+
+The sensitivity functions (Section~\ref{sec:localsens}) explore the sensitivity
+of the model output at specific parameter values,
+i.e., they are \emph{local} sensitivity measures.
+In contrast, \emph{global} sensitivity analyses determine the effect on
+model outcome as a function of an appropriate parameter probability density
+function.
+
+The sensitivity ranges from the previous section (Figure~\ref{fig:sr}) were one example of a
+global sensitivity analysis, where the model outcome consisted of a time series.
+Function \code{modCRL} tests the effects on single output variables.
+
+In the next application, all parameters are allowed to vary over 50\% about their
+nominal value and the effect of that on the mean viral load is estimated.
+A function \code{crlfun} that takes as input the parameter values and outputs
+the mean viral load corresponding to these parameters is created first.
+
+The correlation between mean virus load and the parameters is printed, and
+the relationships plotted (Figure~\ref{fig:crl}).
+
+<<>>=
+parRange <- cbind(min = 0.75 * pars, max = 1.25 * pars)
+crlfun <- function (pars)  return(meanVirus = mean(HIV(pars)$V))
+
+CRL <- modCRL(fun = crlfun, parRange = parRange, num = 500)
+
+cor(CRL)[7, ]
+@
+
+<<label=crl,include=FALSE>>=
+plot(CRL, ylab = "number of virions", trace = TRUE)
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=crlfig,fig=TRUE,echo=FALSE,width=5.5,height=5.5>>=
+plot(CRL, ylab = "number of virions", cex=0.5, trace = TRUE)
+@
+\end{center}
+\caption{Global sensitivity; mean virus number (averaged over the simulation
+  interval) as a function of the parameter values; parameters were generated
+  according to a uniform distribution; solid line = lowess smoother.}
+\label{fig:crl}
+\end{figure}
+
+\section{Discussion}
+
+\pkg{FME} provides a comprehensive environment for the application of nonlinear models
+to data. Its functions can be used for identifying fine-tunable parameters, and
+for parameter fitting. They estimate parameter corelations and uncertainty, as
+well as the uncertainty in the model prediction curves which are due to uncertain
+parameters.
+
+As the functions use numerical approximations, rather than rigorous analytical
+derivations of system properties, the \fme functions can be readily applied
+in real cases, although its results are only approximations, the
+accuracy of which must be evaluated on a case-by-case basis.
+
+Nevertheless, \FME s parameter identifiability analysis, applied to the HIV
+model yielded similar conclusions as obtained in \citet{Wu} and \citet{Xia}, who,
+based on  analytical derivations outlined the conditions
+under which the model was theoretically identifiable.
+However, in addition to this, it is shown here that this theoretical result may not
+necessarily imply practical identifiability, given the data uncertainties.
+
+Whereas \fme has been used here with a \emph{dynamic} simulation model, its
+functions are more generally applicable. Four vignettes elucidate slightly
+different functionalities of the package. Vignette ``\code{FMEdyna}'' comprises a dynamic
+simulation example, similar as in the current paper, but putting more emphasis
+on sensitivity and Monte Carlo analysis, in lack of data.
+Vignette ``\code{FMEsteady}'' applies the functions to a mechanistic model describing
+oxygen dynamics in submersed sediments, and which is
+solved using one of \RS 's steady-state solvers. Vignette ``\code{FMEother}'' develops
+a general nonlinear application, fitting a Monod function to experimental data.
+Finally ``\code{FMEmcmc}'' tests and demonstrates the functionality of the implemented
+Markov chain Monte Carlo method, e.g., using problems for which the analytical
+solution is known.
+
+MCMC methods often suffer the curse of dimensionality, such that (1) efficient
+algorithms are needed to speed up convergence of the Markov chain, and (2) fast
+solution methods should keep the simulation time within acceptible limits.
+The first was achieved by implementing the delayed rejection and adaptive
+Metropolis algorithm \citep{Haario06}, which has proven its worth in
+ecological applications \cite[eg.,][]{Malve07}.
+The latter was ensured by using a \proglang{Fortran} implementation of the model.
+Bayesian approaches are implemented in \R~package \pkg{BACCO} \citep{BACCO} as well.
+However, the computation time in \pkg{BACCO} is reduced by emulating
+computationally expensive complex models with cheaper statistical estimates.
+In contrast, \fme usually works with the original models directly and therefore
+can be used only with models of intermediate complexity, where one run is in
+the order of seconds, at most minutes. Just as a term of reference for the simulation time;
+the \proglang{R}~code from this paper was excuted using
+\code{Sweave} \citep{Leisch02}.
+During the ``weaving'' process, the runs are executed, the graphs are created and
+written to file, and the {\LaTeX} file written.
+So, one can use the time it takes to do that as an upper
+bound on the simulation time. It took about 70 seconds on an Intel Core (TM)2
+Duo CPU T9300 2.5 GHz pentium PC with 3 GB of RAM to execute \code{Sweave}.
+With more than 5500 runs of the model performed here, this means that it takes
+less than 12 milliseconds to perform one run. These CPU times will almost
+certainly be beaten by methods fully implemented in low-level languages,
+but nevertheless, if one adds to the short simulation times the powerful
+post-processing capabilities of the \proglang{R} language, \proglang{R}
+emerges as a potent tool for mechanistic modelling.
+
+\section*{Acknowledgments}
+
+The authors would like to thank Dick van Oevelen, Anna de Kluyver,
+Karel van den Meersche, Tom Cox and Pieter Provoost, students and post-docs
+who have tested the package.
+
+The delayed rejection part of the DRAM MCMC method greatly benefited from
+the \proglang{MATLAB} implementation of this method by Marko Laine, for which Marko
+kindly gave permission of use.
+Marko Laine is also thanked for commenting on the \proglang{R} implementation.
+
+We thank two anonymous reviewers for their constructive comments on this paper
+and the code.
+
+\bibliography{vignettes}
+
+\begin{appendix}
+
+\section[The Fortran version of the model]{The \proglang{Fortran} version of the model}
+
+The \proglang{Fortran} version of the model consists of two subroutines.
+
+\code{inithiv} initialises the parameters of the model:
+
+\begin{verbatim}
+    subroutine inithiv(odeparms)
+    external odeparms
+    double precision parms(6)
+    common /myparms/parms
+     call odeparms(6, parms)
+     return
+    end
+\end{verbatim}
+
+\code{derivshiv} estimates the rate of change.
+
+\begin{verbatim}
+    subroutine derivshiv (neq, t, y, ydot, yout, ip)
+    double precision t, y, ydot, yout
+    double precision bet,rho,delt,c,lam,N
+    common /myparms/ bet,rho,delt,c,lam,N
+    integer neq, ip(*)
+    dimension y(3), ydot(3), yout(1)
+
+    if(ip(1) < 1) call rexit("nout should be at least 1")
+    ydot(1) = lam -rho*y(1) - bet*y(1)*y(3)
+    ydot(2) = bet*y(1)*y(3) -delt*y(2)
+    ydot(3) = N*delt*y(2) - c*y(3) - bet*y(1)*y(3)
+
+    yout(1) = log(y(3))
+    return
+    end
+\end{verbatim}
+
+Assuming that the file containing this code is called \code{fme.f}, then it can be
+compiled by writing, within \R:
+%
+\begin{Sinput}
+R> system("R CMD SHLIB fme.f")
+\end{Sinput}
+%
+which will create a DLL called \code{fme.dll}. This DLL needs to be loaded
+%
+\begin{Sinput}
+R> dyn.load("fme.dll")
+\end{Sinput}
+
+Note that to reproduce this example compiling and loading is not necessary, as the compiled version
+of the HIV model has been made part of the \fme package.
+
+\begin{table}[t!]
+\begin{center}
+\begin{tabular}{p{.18\textwidth}p{.33\textwidth}p{.35\textwidth}}\hline
+ Function          &Description               & \proglang{S3} methods\\
+\hline \hline
+\code{sensFun}            & Sensitivity functions    & \code{summary, plot, pairs, print.summary, plot.summary}  \\ \hline
+\code{sensRange}          & Sensitivity ranges       & \code{summary, plot, plot.summary} \\ \hline
+\code{modCRL}             & Monte Carlo (what-if)    & \code{summary, plot, pairs, hist} \\ \hline
+\code{modCost}            & Model-data residuals, cost &  \code{plot}                    \\ \hline
+\code{modFit}             & Fits a model to data     & \code{summary, deviance, coef, residuals, df.residual, print, plot}  \\ \hline
+\code{modMCMC}            & Markov chain Monte Carlo & \code{summary, plot, pairs, hist}                      \\ \hline
+\code{collin}             & Parameter collinearity   & \code{print, plot}  \\ \hline
+\hline
+\end{tabular}
+\caption{\label{tb:tb1} Summary of the main functions in package \pkg{FME}, with \proglang{S3}-methods.}
+\end{center}
+\end{table}
+
+\end{appendix}
+
+
+\end{document}

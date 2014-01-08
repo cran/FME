@@ -53,14 +53,14 @@ modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf,
     of the parameters and produces as output the perturbed
     parameters. See details.
   }
-  \item{prior }{prior probability of the parameters, either a function
+  \item{prior }{-2*log(parameter prior probability), either a function
     that is called as \code{prior(p)} or \code{NULL}; in the latter case
     a non-informative prior is used (i.e. all parameters are equally
     likely, depending on \code{lower} and \code{upper} within min and max bounds).
   }
   \item{var0 }{initial model variance; if \code{NULL}, it is assumed
     that the model variance is \code{1}, and the return element from \code{f}
-    is -2*log (probability). If it has a value, it is assumed that the return element
+    is -2*log (likelihood). If it has a value, it is assumed that the return element
     from \code{f} contain the model residuals or a list of class
     \code{modFit}.  See details. Good options for \code{var0} are to use 
     the modelvariance (\code{modVariance}) as returned by the 
@@ -193,7 +193,7 @@ modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf,
   is defined as:
   
 \deqn{y=f(\theta) + \xi\\
-\xi ~ N(0,\sigma^2)}{y = f(p) + xi; xi ~ N(0, sigma^2}
+\xi ~ N(0,\sigma^2)}{y = f(p) + xi; xi ~ N(0, sigma^2)}
 
   where \eqn{\xi}{xi} is the measurement error, assumed normally
   distribution, then the posterior for the parameters will be estimated
@@ -220,7 +220,7 @@ modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf,
   
   \deqn{p(\sigma^{-2}|y,\theta) \sim \Gamma(\frac{(n_0+n)}{2},
   \frac{(n_0 \cdot var0+SS(\theta))}{2})}{prob(sigma^2|y,p)~Gam(0.5*(n0+n),
-  0.5*(n0+var0+SS(p)}
+  0.5*(n0+var0+SS(p))}
 
   where \code{n} is the number of data points and where
   \eqn{n0=n \cdot wvar0}{n0=n * wvar0}, and where the second argument to the gamma function
@@ -229,10 +229,12 @@ modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf,
   The prior parameters (\code{var0} and \code{wvar0}) are the prior mean
   for \eqn{\sigma^2}{sigma^2} and the prior accuracy.
 
-  By setting \code{wvar0} equal to 1 (default), equal weight is given to the
+  By setting \code{wvar0} equal to 1, equal weight is given to the
   prior and the current value.
 
-  If \code{wvar0} is 0 (the default) then the error variances are
+  If \code{wvar0} is 0 then the prior is ignored.
+
+  If \code{wvar0} is \code{NULL} (the default) then the error variances are
   assumed to be fixed.
 
   \code{var0} estimates the variance of the measured components. In case
@@ -391,11 +393,11 @@ NN <- function(p) {
 }
 
 # simple Metropolis-Hastings
-MCMC <- modMCMC(f = NN, p = 0:2, niter = 10000,
+MCMC <- modMCMC(f = NN, p = 0:2, niter = 5000,
                 outputlength = 1000, jump = 0.5)
 
 # More accepted values by updating the jump covariance matrix...
-MCMC <- modMCMC(f = NN, p = 0:2, niter = 10000, updatecov = 100,
+MCMC <- modMCMC(f = NN, p = 0:2, niter = 5000, updatecov = 100,
                  outputlength = 1000, jump = 0.5)
 summary(MCMC)
 
@@ -412,7 +414,7 @@ NN <- function(p) {
   -2*sum(log(dnorm(p, mean = mu, sd = 0.5)))   #-2*log(probability)
 }
 
-MCMC2 <- modMCMC(f = NN, p = 1:3, niter = 3000, burninlength = 500,
+MCMC2 <- modMCMC(f = NN, p = 1:3, niter = 2000, burninlength = 500,
   updatecov = 10, jump = 0.5, lower = c(0, 2, 1), upper = c(1, 3, 3))
 plot(MCMC2)
 hist(MCMC2, breaks = 20)
@@ -436,19 +438,19 @@ NL <- function(p) {
   mu <- 1:4
   -2*sum(log(dlnorm(p, mean = mu, sd = 1)))      #-2*log(probability)
 }
-MCMCl <- modMCMC(f = NL, p = log(1:4), niter = 10000,
+MCMCl <- modMCMC(f = NL, p = log(1:4), niter = 3000,
                  outputlength = 1000, jump = 5)
 plot(MCMCl)   # bad convergence
 cumuplot(as.mcmc(MCMCl$pars))
 
-MCMCl <- modMCMC (f = NL, p = log(1:4), niter = 10000,
+MCMCl <- modMCMC (f = NL, p = log(1:4), niter = 3000,
                   outputlength = 1000, jump = 2^(2:5))
 plot(MCMCl)   # better convergence but CHECK it!
 pairs(MCMCl)
 colMeans(log(MCMCl$pars))
 apply(log(MCMCl$pars), 2, sd)
 
-MCMCl <- modMCMC (f = NL, p = rep(1, 4), niter = 5000, 
+MCMCl <- modMCMC (f = NL, p = rep(1, 4), niter = 3000, 
                   outputlength = 1000, jump = 5, updatecov = 100)
 plot(MCMCl)
 colMeans(log(MCMCl$pars))
@@ -496,7 +498,7 @@ Covar   <- sP$cov.scaled * 2.4^2/2
 s2prior <- sP$modVariance
 
 # set nprior = 0 to avoid updating model variance
-MCMC <- modMCMC(f = Residuals, p = P$par,jump = Covar, niter = 10000,
+MCMC <- modMCMC(f = Residuals, p = P$par,jump = Covar, niter = 1000,
                 var0 = s2prior, wvar0 = NULL, updatecov = 100)
 
 plot(MCMC, Full = TRUE)

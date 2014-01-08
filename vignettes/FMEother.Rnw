@@ -1,0 +1,347 @@
+\documentclass[article,nojss]{jss}
+\DeclareGraphicsExtensions{.pdf,.eps}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add-on packages and fonts
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{float}
+
+
+\newcommand{\noun}[1]{\textsc{#1}}
+%% Bold symbol macro for standard LaTeX users
+\providecommand{\boldsymbol}[1]{\mbox{\boldmath $#1$}}
+
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\newcommand{\fme}{\textbf{\textsf{FME }}}
+\newcommand{\ds}{\textbf{\textsf{deSolve }}}
+\newcommand{\rs}{\textbf{\textsf{rootSolve }}}
+\newcommand{\R}{\proglang{R}}
+
+\title{\proglang{R} Package \fme: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Nonlinear Model}
+
+\Plaintitle{R Package FME: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Nonlinear Model}
+
+\Shorttitle{\fme --  Inverse Modelling, Sensitivity, Monte Carlo With
+  a Nonlinear Model}
+
+
+\Keywords{steady-state models, differential equations, fitting,
+  sensitivity, Monte Carlo, identifiability, \proglang{R}}
+
+\Plainkeywords{steady-state models, differential equations, fitting,
+  sensitivity, Monte Carlo, identifiability, R}
+
+
+\author{Karline Soetaert\\
+NIOZ Yerseke\\
+The Netherlands
+}
+
+\Plainauthor{Karline Soetaert}
+
+\Abstract{ \R package \fme \citep{FME} contains functions for
+model calibration, sensitivity, identifiability, and Monte Carlo analysis
+of nonlinear models.
+
+This vignette (\code{vignette("FMEother")}), applies the \fme functions to a
+simple nonlinear model.
+
+A similar vignette (\code{vignette("FMEdyna")}), applies the functions to a
+dynamic similation model, solved with integration routines from
+package \ds
+
+A third vignette, (\code{vignette("FMEsteady")}), applies \fme to a partial
+differential equation, solved with a steady-state solver from package \rs
+
+\code{vignette("FMEmcmc")} tests the Markov chain Monte Carlo (MCMC)
+implementation
+}
+
+%% The address of (at least) one author should be given
+%% in the following format:
+\Address{
+  Karline Soetaert\\
+  Royal Netherlands Institute of Sea Research (NIOZ)\\
+  4401 NT Yerseke, Netherlands\\
+  E-mail: \email{karline.soetaert@nioz.nl}\\
+  URL: \url{http://www.nioz.nl}\\
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
+%% need no \usepackage{Sweave}
+%\VignetteIndexEntry{4. Sensitivity, Calibration, Identifiability, Monte Carlo Analysis of a Nonlinear Model}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
+\begin{document}
+\SweaveOpts{engine=R,eps=FALSE}
+\SweaveOpts{keep.source=TRUE}
+
+<<preliminaries,echo=FALSE,results=hide>>=
+library("FME")
+options(prompt = "> ")
+options(width=70)
+@
+
+\maketitle
+
+\section{Fitting a Monod function}
+
+\subsection{The model}
+
+This example is discussed in \citep{Laine}
+(who quotes Berthoux and Brown, 2002. Statistics for environmental engineers, CRC Press).
+
+The following model:
+\begin{eqnarray*}
+y=\theta_1 \cdot \frac{x}{x+\theta_2}+\epsilon\\
+\epsilon \sim N{(0,I \sigma^2)}
+\end{eqnarray*}
+
+is fitted to data.
+
+\subsection{Implementation in R}
+
+<<>>=
+require(FME)
+@
+First we input the observations
+<<>>=
+Obs <- data.frame(x=c(   28,  55,   83,  110,  138,  225,  375),   # mg COD/l
+                  y=c(0.053,0.06,0.112,0.105,0.099,0.122,0.125))   # 1/hour
+@
+The Monod model returns a data.frame, with elements x and y :
+<<>>=
+Model <- function(p, x) return(data.frame(x = x, y = p[1]*x/(x+p[2])))
+@
+
+\subsection{Fitting the model to data}
+We first fit the model to the data.
+
+Function \code{Residuals} estimates the deviances of model versus the data.
+<<>>=
+Residuals  <- function(p) (Obs$y - Model(p, Obs$x)$y)
+@
+
+This function is input to \code{modFit} which fits the model to the observations.
+<<>>=
+print(system.time(
+P      <- modFit(f = Residuals, p = c(0.1, 1))
+))
+@
+
+We can estimate and print the summary of fit
+<<>>=
+sP    <- summary(P)
+sP
+@
+
+We also plot the residual sum of squares, the residuals and the best-fit model
+<<>>=
+x      <-0:375
+@
+<<label=Monplot, include=FALSE>>=
+par(mfrow = c(2, 2))
+plot(P, mfrow = NULL)
+plot(Obs, pch = 16, cex = 2, xlim = c(0, 400), ylim = c(0, 0.15),
+     xlab = "mg COD/l", ylab = "1/hr", main = "best-fit")
+lines(Model(P$par, x))
+par(mfrow = c(1, 1))
+@
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=Monplot,fig=TRUE,echo=FALSE>>=
+<<Monplot>>
+@
+\end{center}
+\caption{Fit diagnostics of the Monod function - see text for \R-code}
+\label{fig:Monod}
+\end{figure}
+
+\subsection{MCMC analysis}
+
+We then run an MCMC analysis. The -scaled- parameter covariances returned
+from the \code{summary} function are used as estimate of the proposal covariances
+(\code{jump}). Scaling is as in \citep{Gelman}.
+
+For the initial model variance (\code{var0})
+we use the residual mean squares also returned by the \code{summary} function.
+We give equal weight to prior and modeled mean squares (\code{wvar0=1})
+
+The MCMC method adopted here is the Metropolis-Hastings algorithm; the MCMC is run
+for 3000 steps; we use the best-fit parameter set (\code{P$par}) to initiate the
+chain (\code{p}). A lower bound (0) is imposed on the parameters (\code{lower}).
+<<>>=
+Covar   <- sP$cov.scaled * 2.4^2/2
+s2prior <- sP$modVariance
+
+print(system.time(
+MCMC <- modMCMC(f = Residuals, p = P$par, jump = Covar, niter = 3000,
+                var0 = s2prior, wvar0 = 1, lower = c(0, 0))
+))
+@
+By toggling on covariance adaptation (\code{updatecov} and delayed rejection
+(\code{ntrydr}), the acceptance rate is increased:
+<<>>=
+print(system.time(
+MCMC <- modMCMC(f = Residuals, p = P$par, jump = Covar, niter = 3000, 
+      ntrydr = 3, var0 = s2prior, wvar0 = 1, updatecov = 100, lower = c(0, 0))
+))
+MCMC$count
+@
+The plotted results demonstrate (near-) convergence of the chain.
+<<label=Monmcmc, include=FALSE>>=
+plot(MCMC, Full = TRUE)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=Monmcmc,fig=TRUE,echo=FALSE>>=
+<<Monmcmc>>
+@
+\end{center}
+\caption{The mcmc - see text for \R-code}
+\label{fig:Monmcm}
+\end{figure}
+The posterior distribution of the parameters, the sum of squares and the
+model's error standard deviation.
+<<label=Monhist, include=FALSE>>=
+hist(MCMC, Full = TRUE, col = "darkblue")
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=Monhist,fig=TRUE,echo=FALSE>>=
+<<Monhist>>
+@
+\end{center}
+\caption{Hist plot - see text for \R-code}
+\label{fig:Monsum}
+\end{figure}
+
+The pairs plot shows the relationship between the two parameters
+<<label=Monpairs, include=FALSE>>=
+pairs(MCMC)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=Monpairs,fig=TRUE,echo=FALSE>>=
+<<Monpairs>>
+@
+\end{center}
+\caption{Pairs plot - see text for \R-code}
+\label{fig:Monmcmp}
+\end{figure}
+The parameter correlation and covariances from the MCMC results can be calculated
+and compared with the results obtained by the fitting algorithm.
+<<>>=
+cor(MCMC$pars)
+cov(MCMC$pars)
+sP$cov.scaled
+@
+
+The Raftery and Lewis's diagnostic from package \pkg{coda} gives more information
+on the number of runs that is actually needed. First the MCMC results need to
+be converted to an object of type \code{mcmc}, as used in \pkg{coda}.
+<<>>=
+MC <- as.mcmc(MCMC$pars)
+raftery.diag(MC)
+@
+Also interesting is function \code{cumuplot} from \pkg{coda}:
+<<label=cumu, include=FALSE>>=
+cumuplot(MC)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=cumu,fig=TRUE,echo=FALSE>>=
+<<cumu>>
+@
+\end{center}
+\caption{Cumulative quantile plot - see text for \R-code}
+\label{fig:Moncum}
+\end{figure}
+
+\subsection{Predictive inference including only parameter uncertainty}
+
+The predictive posterior distribution of the model, corresponding to the
+parameter uncertainty, is easily estimated by running
+function \code{sensRange}, using a randomly selected subset of the parameters in
+the chain (\code{MCMC$pars}; we use the default of 100 parameter combinations.
+<<>>=
+sR<-sensRange(parInput=MCMC$pars,func=Model,x=1:375)
+@
+The distribution is plotted and the data added to the plot:
+<<label=Monsum, include=FALSE>>=
+plot(summary(sR), quant = TRUE)
+points(Obs)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=Monsum,fig=TRUE,echo=FALSE>>=
+<<Monsum>>
+@
+\end{center}
+\caption{Predictive envelopes of the model, only assuming parameter noise
+  - see text for \R-code}
+\label{fig:Monsum2}
+\end{figure}
+
+\subsection{Predictive inference including also measurement error}
+
+There is an other source of error, which is not captured by the
+\code{senRange} method, i.e. the one corresponding to the measurement error,
+as represented by the sampled values of $\sigma^2$.
+
+This can be estimated by adding normally distribution noise,
+$\xi \sim N(0,I \sigma^2)$ to the model predictions produced by the
+parameters from the MCMC chain. Of course, the $\sigma$ and parameter
+sets used must be compatible.
+
+First we need to extract the parameter sets that were effectively used to
+produce the output in \code{sR}. This information is kept as an attribute
+in the output:
+<<>>=
+pset <- attributes(sR)$pset
+@
+
+Then randomly distributed noise is added; note that the first two columns
+are parameters; \code{ivar} points only to the variables.
+<<>>=
+nout  <- nrow(sR)
+sR2   <- sR
+ivar  <- 3:ncol(sR)
+error <- rnorm(nout, mean = 0, sd = sqrt(MCMC$sig[pset]))
+sR2[,ivar] <- sR2[ ,ivar] + error
+@
+<<label=MonsumM, include=FALSE>>=
+plot(summary(sR2),quant=TRUE)
+points(Obs)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=MonsumM,fig=TRUE,echo=FALSE>>=
+<<MonsumM>>
+@
+\end{center}
+\caption{Predictive envelopes of the model, including parameter and measurement
+noise - see text for \R-code}
+\label{fig:MonsumM}
+\end{figure}
+
+\section{Finally}
+
+This vignette was made with Sweave \citep{Leisch02}.
+
+\bibliography{vignettes}
+
+\end{document}
