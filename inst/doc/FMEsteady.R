@@ -6,17 +6,18 @@
 library("FME")
 options(prompt = "> ")
 options(width=70)
+set.seed(357)
 
 
 ###################################################
-### code chunk number 2: FMEsteady.Rnw:110-112
+### code chunk number 2: FMEsteady.Rnw:111-113
 ###################################################
 par(mfrow=c(2, 2))
 require(FME)
 
 
 ###################################################
-### code chunk number 3: FMEsteady.Rnw:116-120
+### code chunk number 3: FMEsteady.Rnw:117-121
 ###################################################
 pars <- c(upO2 = 360,  # concentration at upper boundary, mmolO2/m3
           cons = 80,   # consumption rate, mmolO2/m3/day
@@ -25,7 +26,7 @@ pars <- c(upO2 = 360,  # concentration at upper boundary, mmolO2/m3
 
 
 ###################################################
-### code chunk number 4: FMEsteady.Rnw:123-127
+### code chunk number 4: FMEsteady.Rnw:124-128
 ###################################################
 n  <- 100                       # nr grid points
 dx <- 0.05   #cm
@@ -34,7 +35,7 @@ X  <- seq(dx/2, len = n, by = dx)  # distance from upper interface at middle of 
 
 
 ###################################################
-### code chunk number 5: FMEsteady.Rnw:133-151
+### code chunk number 5: FMEsteady.Rnw:134-152
 ###################################################
 O2fun <- function(pars)
 {
@@ -57,13 +58,13 @@ O2fun <- function(pars)
 
 
 ###################################################
-### code chunk number 6: FMEsteady.Rnw:154-155
+### code chunk number 6: FMEsteady.Rnw:155-156
 ###################################################
 ox <- O2fun(pars)
 
 
 ###################################################
-### code chunk number 7: FMEsteady.Rnw:158-159
+### code chunk number 7: FMEsteady.Rnw:159-160
 ###################################################
 
 
@@ -83,7 +84,7 @@ plot(ox$O2, ox$X, ylim = rev(range(X)), xlab = "mmol/m3",
 
 
 ###################################################
-### code chunk number 10: FMEsteady.Rnw:180-184
+### code chunk number 10: FMEsteady.Rnw:181-185
 ###################################################
 print(system.time(
 Sens2 <- sensRange(parms = pars, func = O2fun, dist = "norm",
@@ -114,13 +115,13 @@ par(mfrow = c(1, 1))
 
 
 ###################################################
-### code chunk number 13: FMEsteady.Rnw:209-210
+### code chunk number 13: FMEsteady.Rnw:210-211
 ###################################################
 O2sens <- sensFun(func=O2fun,parms=pars)
 
 
 ###################################################
-### code chunk number 14: FMEsteady.Rnw:215-216
+### code chunk number 14: FMEsteady.Rnw:216-217
 ###################################################
 summary(O2sens)
 
@@ -138,13 +139,13 @@ pairs(O2sens)
 
 
 ###################################################
-### code chunk number 17: FMEsteady.Rnw:234-235
+### code chunk number 17: FMEsteady.Rnw:235-236
 ###################################################
 cor(O2sens[,-(1:2)])
 
 
 ###################################################
-### code chunk number 18: FMEsteady.Rnw:240-242
+### code chunk number 18: FMEsteady.Rnw:241-243
 ###################################################
 Coll <- collin(O2sens)
 Coll
@@ -163,7 +164,7 @@ plot(Coll, log = "y")
 
 
 ###################################################
-### code chunk number 21: FMEsteady.Rnw:263-268
+### code chunk number 21: FMEsteady.Rnw:264-269
 ###################################################
 O2dat <- data.frame(x = seq(0.1, 3.5, by = 0.1),
     y = c(279,260,256,220,200,203,189,179,165,140,138,127,116,
@@ -173,7 +174,7 @@ O2flux  <- c(UpFlux = 170)                  # measured flux
 
 
 ###################################################
-### code chunk number 22: FMEsteady.Rnw:272-291
+### code chunk number 22: FMEsteady.Rnw:273-292
 ###################################################
 O2fun2 <- function(pars)
 {
@@ -197,7 +198,7 @@ O2fun2 <- function(pars)
 
 
 ###################################################
-### code chunk number 23: FMEsteady.Rnw:297-313
+### code chunk number 23: FMEsteady.Rnw:298-314
 ###################################################
 Objective <- function (P)
 {
@@ -218,7 +219,7 @@ Objective <- function (P)
 
 
 ###################################################
-### code chunk number 24: FMEsteady.Rnw:317-322
+### code chunk number 24: FMEsteady.Rnw:318-323
 ###################################################
 print(system.time(
 sF<-sensFun(Objective, parms = pars)
@@ -228,7 +229,7 @@ collin(sF)
 
 
 ###################################################
-### code chunk number 25: FMEsteady.Rnw:329-335
+### code chunk number 25: FMEsteady.Rnw:330-336
 ###################################################
 collin(sF, parset = c("upO2", "cons", "ks"))
 print(system.time(
@@ -253,7 +254,7 @@ plot(Objective(Fit$par), xlab = "depth", ylab = "",
 
 
 ###################################################
-### code chunk number 28: FMEsteady.Rnw:354-357
+### code chunk number 28: FMEsteady.Rnw:355-358
 ###################################################
 Pars <- pars
 Pars[names(Fit$par)] <- Fit$par
@@ -277,18 +278,18 @@ lines(modO2$O2, modO2$X)
 
 
 ###################################################
-### code chunk number 31: FMEsteady.Rnw:379-381
+### code chunk number 31: FMEsteady.Rnw:380-382
 ###################################################
 Covar   <- SFit$cov.scaled * 2.4^2/3
 s2prior <- SFit$modVariance
 
 
 ###################################################
-### code chunk number 32: FMEsteady.Rnw:384-390
+### code chunk number 32: FMEsteady.Rnw:385-391
 ###################################################
 print(system.time(
 MCMC <- modMCMC(f = Objective, p = Fit$par, jump = Covar,
-     niter = 1000, ntrydr = 2, var0 = s2prior, wvar0 = 1, 
+     niter = 1000, ntrydr = 2, var0 = s2prior, wvar0 = 1,
      updatecov = 100, lower = c(NA, NA, 0))
 ))
 MCMC$count
@@ -331,7 +332,7 @@ pairs(MCMC, Full = TRUE)
 
 
 ###################################################
-### code chunk number 39: FMEsteady.Rnw:436-438
+### code chunk number 39: FMEsteady.Rnw:437-439
 ###################################################
 summary(MCMC)
 cor(MCMC$pars)

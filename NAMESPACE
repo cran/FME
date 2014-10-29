@@ -1,4 +1,10 @@
 useDynLib(FME)
+import (deSolve)
+import(rootSolve)
+import(coda)
+importFrom(minpack.lm, nls.lm)
+importFrom(minpack.lm, nls.lm.control)
+importFrom(MASS, ginv)
 
 export(modCost,sensFun,collin,sensRange,Unif,Norm,Latinhyper,Grid,
        modFit,modMCMC,pseudoOptim,modCRL,obsplot,gaussianWeights,

@@ -18,8 +18,30 @@ combin <- function(n, v) {
 ## Function to generate collinearities
 ## for a given set of parameter combinations (cc)
 ## -----------------------------------------------------------------------------
+# new version dd 16/04/2014 (Jeremy David Silver)
 
-collFun <- function(cc, normSens, npar, iNa) {
+collFun <- function (cc, normSens, npar, iNa) {
+  n <- ncol(cc) ## calculate n once
+  Collset <- matrix(0,ncol = npar + 2, nrow = nrow(cc)) ## allocate memory rather than use rbind
+  for (i in 1:nrow(cc)) {
+    ii <- cc[i, ]
+    S <- normSens[, ii]
+    Nident <- (iNa != 0 & iNa %in% ii)
+    if (Nident) {
+      id <- Inf
+    } else {
+## only calculate eigenvalues, use symmetry, make the cross product more efficient
+      id <- 1/sqrt(max(0,tail(eigen(crossprod(S),only.values=TRUE,symmetric=TRUE)$value,1)))
+    }
+    psub <- rep(0, npar)
+    psub[ii] <- 1
+    Collset[i,] <- c(psub, n, id) ## insert into pre-allocated memory
+  }
+  return(Collset)
+}
+
+# Replaced 16/04/2014
+collFun_OLD <- function(cc, normSens, npar, iNa) {
   Collset <- NULL
 
   for (i in 1:nrow(cc)) {  # for each parameter combination
@@ -48,7 +70,7 @@ collFun <- function(cc, normSens, npar, iNa) {
 ## Main function: Collinearity indices
 ## =============================================================================
 
-collin <- function(sensfun, parset = NULL, N = NULL, which = NULL) {
+collin <- function(sensfun, parset = NULL, N = NULL, which = NULL, maxcomb = 5000) {
 
   #-----------------
   # 1. check input
@@ -99,8 +121,9 @@ collin <- function(sensfun, parset = NULL, N = NULL, which = NULL) {
   }
 
   # check if work requested not too large...
-  if (npar > 14 & is.null(parset) & is.null(N))
-    warning ("will reduce collinearity estimates: too many combinations")
+# TOGGLED OFF 16/04/2014
+#  if (npar > 14 & is.null(parset) & is.null(N))
+#    warning ("will reduce collinearity estimates: too many combinations")
 
   # normalise sensitivity functions
   normSens <- t(t(Sens) / L2)
@@ -118,12 +141,16 @@ collin <- function(sensfun, parset = NULL, N = NULL, which = NULL) {
 
     for (n in nset) {
       numcomb <- choose(npar, n) # number of combinations requested
-      if (numcomb < 5000) {
+      if (numcomb < maxcomb) {
         cc  <- combin(n, pset)   # all combinations of n pars from pset.
         # collinearity of the parameter sets in cc
         Collin <- rbind(Collin, collFun(cc, normSens, npar, iNa))
-      } else if (!is.null(N)) stop ("too many parameter combinations")
-        
+      } else if (!is.null(N)) 
+        stop ("too many parameter combinations")
+      else {
+       warning ("will not produce collinearity estimates for n = ", n)        
+       warning ("number of combinations = ", numcomb, "maxcomb = ", maxcomb)        
+      }      
     }
   } else {                 # parameter combination specified ..
     if (! is.vector(parset))

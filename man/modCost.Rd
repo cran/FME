@@ -158,7 +158,7 @@ modCost(model, obs, x = "time", y = NULL, err = NULL,
       For data presented in this format, the names of the column(s) with the
       independent variable (\code{x}) and the name of the column that has the
       value of the dependent variable \code{y} must be passed to function
-      \code{costMod}.
+      \code{modCost}.
 
 
     \item \emph{crosstable (wide) format}; this is a matrix, where each

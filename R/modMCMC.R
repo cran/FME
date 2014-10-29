@@ -630,7 +630,6 @@ pairs.modMCMC <- function (x, Full = FALSE, which = 1:ncol(x$pars),
 
 ## -----------------------------------------------------------------------------
 
-## This one not yet available ...
 cumuplot.modMCMC <- function (x, Full = FALSE, which = 1:ncol(x$pars),
                               remove = NULL, ...) {
 

@@ -26,7 +26,7 @@
 }
 
 \usage{
-collin(sensfun, parset = NULL, N = NULL, which = NULL)
+collin(sensfun, parset = NULL, N = NULL, which = NULL, maxcomb = 5000)
 
 \method{print}{collin}(x, ...)
 
@@ -43,6 +43,10 @@ collin(sensfun, parset = NULL, N = NULL, which = NULL)
   }
   \item{which }{the name or the index to the observed variables that should be
     used. Default = all observed variables.
+  }
+  \item{maxcomb }{the maximal number of combinations that can be tested.
+    If too large, this may produce a huge output. The number of combinations of 
+    n parameters out of a total of p parameters is \code{choose(p, n)}.
   }
   \item{x }{an object of class \code{collin}.
   }

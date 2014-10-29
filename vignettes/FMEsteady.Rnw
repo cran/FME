@@ -87,6 +87,7 @@ implementation
 library("FME")
 options(prompt = "> ")
 options(width=70)
+set.seed(357)
 @
 
 \maketitle
@@ -384,7 +385,7 @@ We run an adaptive Metropolis, making sure that ks does not become negative...
 <<>>=
 print(system.time(
 MCMC <- modMCMC(f = Objective, p = Fit$par, jump = Covar,
-     niter = 1000, ntrydr = 2, var0 = s2prior, wvar0 = 1, 
+     niter = 1000, ntrydr = 2, var0 = s2prior, wvar0 = 1,
      updatecov = 100, lower = c(NA, NA, 0))
 ))
 MCMC$count
