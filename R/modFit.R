@@ -2,12 +2,18 @@
 ## Fitting the Model to Data
 ## -----------------------------------------------------------------------------
 
-## a small utility function
+## small utility functions
 overrule <- function(ini, new) if(is.null(new)) ini else new
+
+renameListElement <- function(L, old, new) {
+  names(L)[match(old, names(L))] <- new
+  L
+}
+
 
 modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
                    method = c("Marq", "Port", "Newton", "Nelder-Mead", "BFGS", "CG",
-                   "L-BFGS-B", "SANN", "Pseudo"), jac = NULL,
+                   "L-BFGS-B", "SANN", "Pseudo", "bobyqa"), jac = NULL,
                    control = list(), hessian = TRUE) {
 
   ## check if valid input...
@@ -27,7 +33,7 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
 
 
   ## are boundaries allowed in the method?
-  bounds <- method %in% c("L-BFGS-B", "Port", "Pseudo")
+  bounds <- method %in% c("L-BFGS-B", "Port", "Pseudo", "bobyqa")
 
   FF      <- NULL
   useCost <- method != "Marq" # marquardt uses residuals, others model cost
@@ -165,6 +171,17 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
     names(res)[2] <- "ssr"  #is called "cost" here
     if(hessian)
       estHess<-TRUE
+    
+  } else if (method == "bobyqa") {
+    ## thpe: Experimentally added method bobyqa from package minqa.
+    ##       As an alternative, one may also try package optimx,
+    ##       that has more options and estimates the Hessian internally.
+    res <- bobyqa(par = Pars, fn = Fun, lower = lower, upper = upper,
+                  control = control, ...)
+    #names(res)[2] <- "ssr"  # is called "fval" here
+    res <- renameListElement(res, "fval", "ssr") # avoids hard-coded number
+    
+    if(hessian) estHess <- TRUE
   }
 
 
@@ -194,7 +211,7 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
     if (class(FF) == "modCost")
       res$residuals <- FF$residuals$res
     else res$residuals  <- FF
-
+  
   # mean square
   res$ms <- res$ssr/length(res$residuals)
 

@@ -47,6 +47,13 @@ Fit <- modFit(f = ModelCost, p = Fita$par,
 
 summary(Fit)
 
+# Newer algorithm bobyqa finds minimum in one step
+Fitb <- modFit(f = ModelCost, p = parms, method="bobyqa",
+              lower = c(0, 0.1), upper = c(10, 200))
+
+
+summary(Fitb)
+
 # plot best-fit model
 times <- 0:40
 lines(model(Fit$par, times), lwd = 2, col = "blue")

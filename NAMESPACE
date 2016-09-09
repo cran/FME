@@ -1,10 +1,23 @@
 useDynLib(FME)
-import (deSolve)
-import(rootSolve)
-import(coda)
-importFrom(minpack.lm, nls.lm)
-importFrom(minpack.lm, nls.lm.control)
-importFrom(MASS, ginv)
+import ("deSolve")
+import("rootSolve")
+import("coda")
+
+import("grDevices")
+import("stats")
+import("utils")
+
+## import "graphics" only partly, because redefined "matplot" is
+## already imported from deSolve,
+importFrom("graphics", "abline", "boxplot", "dotchart", "hist",
+           "legend", "lines", "par", "plot", "points", "polygon",
+           "rect", "segments", "text")
+
+
+importFrom("minpack.lm", "nls.lm")
+importFrom("minpack.lm", "nls.lm.control")
+importFrom("MASS", "ginv")
+importFrom("minqa", "bobyqa")
 
 export(modCost,sensFun,collin,sensRange,Unif,Norm,Latinhyper,Grid,
        modFit,modMCMC,pseudoOptim,modCRL,obsplot,gaussianWeights,

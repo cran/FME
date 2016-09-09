@@ -151,7 +151,7 @@ summary.sensFun <- function(object, vars=FALSE, ...) {
   Sens <- as.matrix(object[, -(1:2)])       # unwanted type conversion when only one parameter is analysed : matrix --> vector
   nout <- nrow(Sens)
   if (vars) { # summaries per variable
-    Vars <- object[, 2]
+    Vars <- factor(object[, 2]) # factor90 so that strings are factors, even when "stringAsFactors" is false - suggestion Jeremy David Silver
     out <- data.frame(
       L1   = unlist(aggregate(abs(Sens), by = list(Vars), FUN = mean)[, -1]),
       L2   = unlist(aggregate(Sens*Sens, by = list(Vars), FUN = sum)[, -1]),

@@ -10,11 +10,13 @@ citEntry(entry = "Article",
   number       = "3",
   pages        = "1--28",
   url          = "http://www.jstatsoft.org/v33/i03/",
+  doi          = "10.18637/jss.v033.i03",
 
   textVersion  =
   paste("Soetaert, Karline and Petzoldt, Thomas, 2010.",
         "Inverse Modelling, Sensitivity and Monte Carlo Analysis in R Using Package FME.",
         "Journal of Statistical Software, 33(3), 1-28.",
+        "DOI 10.18637/jss.v033.i03",
         "URL http://www.jstatsoft.org/v33/i03/.")
 )
 

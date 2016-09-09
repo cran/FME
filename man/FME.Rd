@@ -9,7 +9,7 @@
 \description{
   R-package FME contains functions to run complex applications of models
   that produce output as a function of input parameters.
-  
+
   Although it was created to be used with models consisting of ordinary
   differential equations (ODE), partial differential equations (PDE) or
   differential algebraic equations (DAE), it can work with other models.
@@ -26,7 +26,7 @@
       built-in minimisation routines (\code{optim}, \code{nlm},
       \code{nlminb}) and \code{nls.lm} from package \code{minpack.lm}.
 
-      Package FME also includes an implementation of the pseudo-random 
+      Package FME also includes an implementation of the pseudo-random
       search algorithm (function \code{\link{pseudoOptim}}).
 
     \item Function \code{sensFun} estimates the sensitivity functions of
@@ -56,27 +56,27 @@
     \item FME also contains functions to generate multiple parameter
       values arranged according to a grid (\code{Grid}) multinormal
       (\code{Norm}) or uniform (\code{Unif}) design, and a latin
-      hypercube sampling (\code{Latinhyper}) function } 
+      hypercube sampling (\code{Latinhyper}) function }
 }
 \details{
   \tabular{ll}{
     Package: \tab FME\cr
     Type: \tab Package\cr
-    Version: \tab 1.3.2\cr
-    Date: \tab 2014-11-29\cr
+    Version: \tab 1.3.3\cr
+    Date: \tab 2016-06-20\cr
     License: \tab GNU Public License 2 or above\cr
   }
 
   bug corrections:
 
   changed for version 1.3.
-  
+
   modCost: minlogp was not correctly estimated if more than one
     observed variable (used the wrong sd).
 }
 \author{
   Karline Soetaert
-  
+
   Thomas Petzoldt
 }
 \references{

@@ -1,26 +1,26 @@
 Package: FME
-Version: 1.3.2
+Version: 1.3.5
 Title: A Flexible Modelling Environment for Inverse Modelling,
-        Sensitivity, Identifiability, Monte Carlo Analysis.
+        Sensitivity, Identifiability and Monte Carlo Analysis
 Author: Karline Soetaert <karline.soetaert@nioz.nl>,
         Thomas Petzoldt <thomas.petzoldt@tu-dresden.de>
 Maintainer: Karline Soetaert <karline.soetaert@nioz.nl>
 Depends: R (>= 2.6), deSolve, rootSolve, coda
-Imports: minpack.lm, MASS
+Imports: minpack.lm, MASS, graphics, grDevices, stats, utils, minqa
 Suggests: diagram
 Description: Provides functions to help in fitting models to data, to
   perform Monte Carlo, sensitivity and identifiability analysis. It is
   intended to work with models be written as a set of differential
   equations that are solved either by an integration routine from
-  package deSolve, or a steady-state solver from package
-  rootSolve. However, the methods can also be used with other types of
+  package 'deSolve', or a steady-state solver from package
+  'rootSolve'. However, the methods can also be used with other types of
   functions.
 License: GPL (>= 2)
 LazyData: yes
 Repository: CRAN
 Repository/R-Forge/Project: fme
-Repository/R-Forge/Revision: 139
-Repository/R-Forge/DateTimeStamp: 2014-10-29 00:31:50
-Date/Publication: 2014-11-04 00:11:01
-Packaged: 2014-10-29 00:48:02 UTC; rforge
+Repository/R-Forge/Revision: 162
+Repository/R-Forge/DateTimeStamp: 2016-09-08 10:09:45
+Date/Publication: 2016-09-09 10:13:37
 NeedsCompilation: yes
+Packaged: 2016-09-08 10:27:25 UTC; rforge
