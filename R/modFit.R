@@ -43,7 +43,7 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
     ## the function need NOT be called once more, to obtain the residuals,
     ## sum of squares etc...
     FF <<- f(p, ...)
-    cM <- class(FF) == "modCost"
+    cM <- inherits(FF, "modCost")
 
     if (cM && useCost ) return(FF$model)
     if (cM)             return(FF$residuals$res)
@@ -208,7 +208,7 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
   }
 
   if (!method == "Marq")
-    if (class(FF) == "modCost")
+    if (inherits(FF, "modCost"))
       res$residuals <- FF$residuals$res
     else res$residuals  <- FF
   
@@ -216,7 +216,7 @@ modFit <- function(f, p, ..., lower = -Inf, upper = Inf,
   res$ms <- res$ssr/length(res$residuals)
 
   # mean square per varaible
-  if (class(FF) == "modCost") {
+  if (inherits(FF, "modCost")) {
     names(res$residuals)  <- FF$residuals$name
     res$var_ms            <- FF$var$SSR/FF$var$N
     res$var_ms_unscaled   <- FF$var$SSR.unscaled/FF$var$N

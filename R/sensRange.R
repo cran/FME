@@ -260,7 +260,7 @@ plot.summary.sensRange<-function(x, xyswap = FALSE, which = NULL,
        Obs <- obs
        obs <- Obs[[1]]  
        obs.pos <- matrix(nrow = 1, c(1, nrow(obs)))
-       if (! class(obs) %in% c("data.frame", "matrix"))
+       if (! inherits(obs, c("data.frame", "matrix")))
          stop ("'obs' should be either a 'data.frame' or a 'matrix'")
        if (length(Obs) > 1)
          for ( i in 2 : length(Obs)) {
@@ -272,7 +272,7 @@ plot.summary.sensRange<-function(x, xyswap = FALSE, which = NULL,
        if (is.character(obs[,1]) | is.factor(obs[,1]))   # long format - convert
           obs <- convert2wide(obs)
        obsname <- colnames(obs) 
-       if (! class(obs) %in% c("data.frame", "matrix"))
+       if (! inherits(obs, c("data.frame", "matrix")))
          stop ("'obs' should be either a 'data.frame' or a 'matrix'")
        obs.pos <- matrix(nrow = 1, c(1, nrow(obs)))
       }                       

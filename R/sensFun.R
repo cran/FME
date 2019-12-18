@@ -11,7 +11,7 @@ sensFun <- function(func, parms, sensvar = NULL, senspar = names(parms),
 
   yRef  <- Solve(parms)
   Type <- 1
-  if("modCost" %in% class(yRef))  {
+  if (inherits(yRef, "modCost"))  {
     Res    <- yRef$residuals
     ynames <- Res$name
     YNAMES <- as.matrix(unique(ynames))                                                 # changed on 01-12-2011 (Tom): rearrangement of residual matrix to put costs of same var together
@@ -168,7 +168,7 @@ summary.sensFun <- function(object, vars=FALSE, ...) {
                       scale=rep(parscale, times=rep(nv,np)),out))
   } else {  # global summaries
     L1   <- colMeans(abs(Sens))
-    L2   <- sqrt(colSums(Sens*Sens)) / nout
+    L2   <- sqrt(colSums(Sens*Sens) / nout)
     Mean <- colMeans(Sens)
     Min  <- apply(Sens, 2, min)
     Max  <- apply(Sens, 2, max)

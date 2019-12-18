@@ -78,7 +78,7 @@ convert2wide <- function(Data) {
 
 mergeObs <- function(obs, Newobs) {
       
-  if (! class(Newobs) %in% c("data.frame","matrix"))
+  if (! inherits(Newobs, c("data.frame","matrix")))
     stop ("the elements in 'obs' should be either a 'data.frame' or a 'matrix'")
       
   if (is.character(Newobs[,1]) | is.factor(Newobs[,1])) 
@@ -127,7 +127,7 @@ obsplot <- function (x, ..., which = NULL, xyswap = FALSE, ask = NULL) {
     checkobs <- function (obs) {
       Obs <- obs
       obsname <- colnames(obs) 
-        if (! class(obs) %in% c("data.frame", "matrix"))
+        if (! inherits(obs, c("data.frame", "matrix")))
           stop ("'obs' should be either a 'data.frame' or a 'matrix'")
       DD <- duplicated(obsname)
       if (sum(DD) > 0) {   # Karline: changed this to account for more columns 
@@ -156,7 +156,7 @@ obsplot <- function (x, ..., which = NULL, xyswap = FALSE, ask = NULL) {
 
     if (length(ldots) > 0) 
      for ( i in 1:length(ldots))
-      if (class(ldots[[i]]) %in% c("matrix", "data.frame") ) {
+      if (inherits(ldots[[i]], c("matrix", "data.frame"))) {
         NewObs <- ldots[[i]]  
         obs    <- mergeObs(obs, NewObs)
         obs.pos   <- rbind(obs.pos, c(obs.pos[nrow(obs.pos),2] +1, nrow(obs)))

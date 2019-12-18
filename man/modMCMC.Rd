@@ -107,7 +107,9 @@ modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf,
     decomposition of the proposal matrix is scaled with this amount; if
     \code{NULL}, it is assumed to be \code{c(0.2,0.25, 0.333, 0.333,
     ...)}  }
-  \item{verbose }{if \code{TRUE}: prints extra output.
+  \item{verbose }{if \code{TRUE} or \code{1}: prints extra output, if 
+    numeric value \code{i > 1}, prints status information every 
+	\code{i} iterations.
   }
   \item{object }{an object of class \code{\link{modMCMC}}.
   }
@@ -118,14 +120,14 @@ modMCMC(f, p, ..., jump = NULL,  lower = -Inf, upper = +Inf,
   }
   \item{which }{the name or the index to the parameters that should be
     plotted.  Default = all parameters. If \code{Full=TRUE}, setting
-    \code{which =NULL} will plot only the function value and the model
+    \code{which = NULL} will plot only the function value and the model
     variance.
   }
   \item{trace }{if \code{TRUE}, adds smoothed line to the plot.
   }
   
   \item{remove }{a list with indices of the runs that should be removed (e.g.
-    to remove runs during burnin.
+    to remove runs during burnin).
   }
   \item{nsample }{the number of xy pairs to be plotted on the upper
     panel in the pairs plot. When \code{NULL} all xy pairs plotted. Set

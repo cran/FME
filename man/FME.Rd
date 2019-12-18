@@ -59,20 +59,17 @@
       hypercube sampling (\code{Latinhyper}) function }
 }
 \details{
-  \tabular{ll}{
-    Package: \tab FME\cr
-    Type: \tab Package\cr
-    Version: \tab 1.3.3\cr
-    Date: \tab 2016-06-20\cr
-    License: \tab GNU Public License 2 or above\cr
-  }
 
   bug corrections:
+  
+  \itemize{
 
-  changed for version 1.3.
-
-  modCost: minlogp was not correctly estimated if more than one
-    observed variable (used the wrong sd).
+  \item version 1.3.6, sensFun:  corrected calculation of L2 norm 
+    (now consistent with help page),
+  
+  \item version 1.3,  modCost: minlogp was not correctly estimated 
+    if more than one observed variable (used the wrong sd).
+  }
 }
 \author{
   Karline Soetaert
@@ -82,8 +79,7 @@
 \references{
   Soetaert, K. and Petzoldt, T. 2010.  Inverse Modelling, Sensitivity and
   Monte Carlo Analysis in R Using Package FME.  Journal of Statistical
-  Software 33(3) 1--28.
-  \url{http://www.jstatsoft.org/v33/i03}
+  Software 33(3) 1--28. \url{https://doi.org/10.18637/jss.v033.i03}
 }
 
 \examples{

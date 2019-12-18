@@ -216,7 +216,7 @@ modMCMC <- function (f, p, ..., jump = NULL, lower = -Inf, upper = +Inf,
       logP <- function(...)  logP_type2b(...)
       SSold <- SSnew^2
     }
-  } else if (class(SSnew) != "modCost")
+  } else if (!inherits(SSnew, "modCost"))
     stop("'f' should either return the -2*log of the model probability OR an instance of class 'modCost'")
   ## type III: class modCost & ! usesigma
   else if (!useSigma)  {
@@ -369,8 +369,17 @@ modMCMC <- function (f, p, ..., jump = NULL, lower = -Inf, upper = +Inf,
   }
 
   # loop over iterations ....
+  ## thpe, count system time
+  t_start <- Sys.time()
   for ( i in 1:niter) {
 
+    ## thpe: if verbose > 1, print number of iterations
+    if ((verbose > 1) & !(i %% floor(verbose))) {
+      cat("iteration =", i, 
+          "   runtime =", round((as.numeric(Sys.time()) - as.numeric(t_start))/60, 2),
+          "min \n")
+    }
+    
     accept <- FALSE
 
     parnew <- NewPars(parold, R)       # new parameter set

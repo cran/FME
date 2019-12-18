@@ -1,9 +1,15 @@
 Package: FME
-Version: 1.3.5
+Version: 1.3.6.1
 Title: A Flexible Modelling Environment for Inverse Modelling,
         Sensitivity, Identifiability and Monte Carlo Analysis
-Author: Karline Soetaert <karline.soetaert@nioz.nl>,
-        Thomas Petzoldt <thomas.petzoldt@tu-dresden.de>
+Authors@R: c(person("Karline","Soetaert", role = c("aut", "cre"), 
+                     email = "karline.soetaert@nioz.nl",
+					 comment = c(ORCID = "0000-0003-4603-7100")),
+             person("Thomas","Petzoldt", role = c("aut"),
+                     email = "thomas.petzoldt@tu-dresden.de",
+					 comment = c(ORCID = "0000-0002-4951-6468")))
+Author: Karline Soetaert [aut, cre] (<https://orcid.org/0000-0003-4603-7100>),
+  Thomas Petzoldt [aut] (<https://orcid.org/0000-0002-4951-6468>)
 Maintainer: Karline Soetaert <karline.soetaert@nioz.nl>
 Depends: R (>= 2.6), deSolve, rootSolve, coda
 Imports: minpack.lm, MASS, graphics, grDevices, stats, utils, minqa
@@ -17,10 +23,11 @@ Description: Provides functions to help in fitting models to data, to
   functions.
 License: GPL (>= 2)
 LazyData: yes
+URL: http://fme.r-forge.r-project.org/
 Repository: CRAN
 Repository/R-Forge/Project: fme
-Repository/R-Forge/Revision: 162
-Repository/R-Forge/DateTimeStamp: 2016-09-08 10:09:45
-Date/Publication: 2016-09-09 10:13:37
+Repository/R-Forge/Revision: 172
+Repository/R-Forge/DateTimeStamp: 2019-12-17 12:56:13
+Date/Publication: 2019-12-18 08:20:02 UTC
 NeedsCompilation: yes
-Packaged: 2016-09-08 10:27:25 UTC; rforge
+Packaged: 2019-12-17 13:11:55 UTC; rforge
