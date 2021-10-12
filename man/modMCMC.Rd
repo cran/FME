@@ -531,22 +531,23 @@ points(Obs, pch = 16, cex = 1.5)
 
   Haario, H., Saksman, E. and Tamminen, J., 2001. An Adaptive Metropolis
   Algorithm. Bernoulli 7, pp. 223--242.
+  doi: 10.2307/3318737.
 
   Haario, H., Laine, M., Mira, A. and Saksman, E., 2006. DRAM: Efficient
   Adaptive MCMC. Statistics and Computing, 16(4), 339--354.
+  \doi{10.1007/s11222-006-9438-0}
      
   Haario, H., Saksman, E. and Tamminen, J., 2005. Componentwise
   Adaptation for High Dimensional MCMC. Computational Statistics 20(2),
-  265--274.
+  265--274. \doi{10.1007/BF02789703}
 
   Gelman, A. Varlin, J. B., Stern, H. S. and Rubin, D. B.,
   2004. Bayesian Data Analysis.  Second edition. Chapman and Hall, Boca
   Raton.
 
-  Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity
-  and Monte Carlo Analysis in R Using Package FME.  Journal of
-  Statistical Software 33(3)
-  1--28. \url{http://www.jstatsoft.org/v33/i03}
+  Soetaert, K. and Petzoldt, T. 2010.  Inverse Modelling, Sensitivity and
+  Monte Carlo Analysis in R Using Package FME.  Journal of Statistical
+  Software 33(3) 1--28. \doi{10.18637/jss.v033.i03}
 
 }
 \keyword{utilities}

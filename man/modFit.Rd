@@ -406,7 +406,7 @@ max(abs(mf$par - X))
   Powell, M. J. D. (2009). The BOBYQA algorithm for bound constrained
   optimization without derivatives. Report No. DAMTP 2009/NA06, Centre
   for Mathematical Sciences, University of Cambridge, UK.
-  \url{http://www.damtp.cam.ac.uk/user/na/NA_papers/NA2009_06.pdf}
+  \url{https://www.damtp.cam.ac.uk/user/na/NA_papers/NA2009_06.pdf}
 
   Press, W. H.,  Teukolsky, S. A., Vetterling, W. T. and
   Flannery, B. P., 2007. Numerical Recipes in C. Cambridge
@@ -414,12 +414,12 @@ max(abs(mf$par - X))
 
   Price, W.L., 1977. A Controlled Random Search Procedure for Global
   Optimisation. The Computer Journal, 20: 367-370.
+  \doi{10.1093/comjnl/20.4.367}
 
-  Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity
-  and Monte Carlo Analysis in R Using Package FME.
-  Journal of Statistical Software 33(3) 1--28.
-  \url{http://www.jstatsoft.org/v33/i03}
-
+  Soetaert, K. and Petzoldt, T. 2010.  Inverse Modelling, Sensitivity and
+  Monte Carlo Analysis in R Using Package FME.  Journal of Statistical
+  Software 33(3) 1--28. \doi{10.18637/jss.v033.i03}
+  
   Please see also additional publications on the help pages of the individual
   algorithms.
 }

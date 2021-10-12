@@ -206,8 +206,9 @@ collin(sensFun(Objective, P, varscale = 1))
   Biogeochemical Model of Lake Zurich: Sensitivity, Identifiability and
   Uncertainty Analysis. Ecol. Modell. 141: 105--123.
 
-  Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity
-  and Monte Carlo Analysis in R Using Package FME.  Journal of
-  Statistical Software 33(3) 1--28.
-  \url{http://www.jstatsoft.org/v33/i03} } \keyword{utilities}
+  Soetaert, K. and Petzoldt, T. 2010.  Inverse Modelling, Sensitivity and
+  Monte Carlo Analysis in R Using Package FME.  Journal of Statistical
+  Software 33(3) 1--28. \doi{10.18637/jss.v033.i03}
+} 
+\keyword{utilities}
 

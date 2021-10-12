@@ -302,11 +302,9 @@ plot(Sens2, xlab = "time, hour", ylab = "molC/m3", quant = TRUE,
   Karline Soetaert <karline.soetaert@nioz.nl>
 }
 \references{
-  Soetaert, K. and Petzoldt, T., 2010.  Inverse Modelling, Sensitivity
-  and Monte Carlo Analysis in R Using Package FME.  Journal of
-  Statistical Software 33(3) 1--28.
-  \url{http://www.jstatsoft.org/v33/i03}
-}
+  Soetaert, K. and Petzoldt, T. 2010.  Inverse Modelling, Sensitivity and
+  Monte Carlo Analysis in R Using Package FME.  Journal of Statistical
+  Software 33(3) 1--28. \doi{10.18637/jss.v033.i03}}
 
 \keyword{utilities}
 
