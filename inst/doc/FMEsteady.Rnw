@@ -1,0 +1,464 @@
+\documentclass[article,nojss]{jss}
+\DeclareGraphicsExtensions{.pdf,.eps}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add-on packages and fonts
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{float}
+
+
+\newcommand{\noun}[1]{\textsc{#1}}
+%% Bold symbol macro for standard LaTeX users
+\providecommand{\boldsymbol}[1]{\mbox{\boldmath $#1$}}
+
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\newcommand{\fme}{\textbf{\textsf{FME }}}
+\newcommand{\ds}{\textbf{\textsf{deSolve }}}
+\newcommand{\rs}{\textbf{\textsf{rootSolve }}}
+\newcommand{\R}{\proglang{R}}
+
+\title{\proglang{R} Package \fme: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Steady-State Model}
+
+\Plaintitle{R Package FME: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Steady-State Model}
+
+\Shorttitle{\fme -- Inverse Modelling, Sensitivity,
+  Monte Carlo with a Steady-State Model}
+
+
+\Keywords{steady-state models, differential equations, fitting,
+  sensitivity, Monte Carlo, identifiability, \proglang{R}}
+
+\Plainkeywords{steady-state models, differential equations, fitting,
+  sensitivity, Monte Carlo, identifiability, R}
+
+
+\author{Karline Soetaert\\
+NIOZ Yerseke\\
+The Netherlands
+}
+
+\Plainauthor{Karline Soetaert}
+
+\Abstract{ \R package \fme \citep{FME} contains functions for
+model calibration, sensitivity, identifiability, and Monte Carlo analysis
+of nonlinear models.
+
+This vignette, (\code{vignette("FMEsteady")}), applies \fme to a partial
+differential equation, solved with a steady-state solver from package \rs
+
+A similar vignette (\code{vignette("FMEdyna")}), applies the functions to a
+dynamic similation model, solved with integration routines from
+package \ds
+
+A third vignette (\code{vignette("FMEother")}), applies the functions to a
+simple nonlinear model
+
+\code{vignette("FMEmcmc")} tests the Markov chain Monte Carlo (MCMC)
+implementation
+
+}
+
+%% The address of (at least) one author should be given
+%% in the following format:
+\Address{
+  Karline Soetaert\\
+  Royal Netherlands Institute of Sea Research (NIOZ)\\
+  4401 NT Yerseke, Netherlands\\
+  E-mail: \email{k.soetaert@nioz.nl}\\
+  URL: \url{http://www.nioz.nl}\\
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
+%% need no \usepackage{Sweave}
+%\VignetteIndexEntry{5. Sensitivity, Calibration, Identifiability, Monte Carlo Analysis of a Steady-State Model}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
+\begin{document}
+\SweaveOpts{engine=R,eps=FALSE}
+\SweaveOpts{keep.source=TRUE}
+
+<<preliminaries,echo=FALSE,results=hide>>=
+library("FME")
+options(prompt = "> ")
+options(width=70)
+set.seed(357)
+@
+
+\maketitle
+
+\section{A steady-state model of oxygen in a marine sediment}
+This is a simple model of oxygen in a marine (submersed) sediment,
+diffusing along a spatial gradient, with imposed upper boundary concentration
+oxygen is consumed at maximal fixed rate, and including a monod limitation.
+
+See \citep{Soetaert08} for a description of reaction-transport models.
+
+The constitutive equations are:
+
+\begin{eqnarray*}
+\frac{\partial O_2}{\partial t}=- \frac{\partial Flux}{\partial x} -cons \cdot \frac{O_2}{O_2+k_s}\\
+Flux = - D\cdot \frac{\partial O_2}{\partial x} \\
+O_2(x=0)=upO2
+\end{eqnarray*}
+
+
+<<>>=
+par(mfrow=c(2, 2))
+require(FME)
+@
+First the model parameters are defined...
+
+<<>>=
+pars <- c(upO2 = 360,  # concentration at upper boundary, mmolO2/m3
+          cons = 80,   # consumption rate, mmolO2/m3/day
+          ks = 1,      # O2 half-saturation ct, mmolO2/m3
+          D = 1)       # diffusion coefficient, cm2/d
+@
+Next the sediment is vertically subdivided into 100 grid cells, each 0.05 cm thick.
+<<>>=
+n  <- 100                       # nr grid points
+dx <- 0.05   #cm
+dX <- c(dx/2, rep(dx, n-1), dx/2)  # dispersion distances; half dx near boundaries
+X  <- seq(dx/2, len = n, by = dx)  # distance from upper interface at middle of box
+@
+
+The model function takes as input the parameter values and returns the steady-state
+condition of oxygen. Function \code{steady.1D} from package \pkg{rootSolve} ( \citep{rootSolve})
+does this in a very efficient way (see \citep{Soetaert08}).
+<<>>=
+O2fun <- function(pars)
+{
+  derivs<-function(t, O2, pars)
+  {
+  with (as.list(pars),{
+
+    Flux <- -D* diff(c(upO2, O2, O2[n]))/dX
+    dO2  <- -diff(Flux)/dx - cons*O2/(O2 + ks)
+
+    return(list(dO2, UpFlux = Flux[1], LowFlux = Flux[n+1]))
+  })
+ }
+
+ # Solve the steady-state conditions of the model
+ ox <- steady.1D(y = runif(n), func = derivs, parms = pars,
+                 nspec = 1, positive = TRUE)
+ data.frame(X = X, O2 = ox$y)
+}
+@
+The model is run
+<<>>=
+ox <- O2fun(pars)
+@
+and the results plotted...
+<<>>=
+
+<<label=O2plot, include=FALSE>>=
+plot(ox$O2, ox$X, ylim = rev(range(X)), xlab = "mmol/m3",
+     main = "Oxygen", ylab = "depth, cm", type = "l", lwd = 2)
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=O2plot,fig=TRUE,echo=FALSE>>=
+<<O2plot>>
+@
+\end{center}
+\caption{The modeled oxygen profile - see text for \R-code}
+\label{fig:o2}
+\end{figure}
+
+\section{Global sensitivity analysis : Sensitivity ranges}
+
+The sensitivity of the oxygen profile to parameter \code{cons}, the consumption rate
+is estimated. We assume a normally distributed parameter, with mean = 80 (\code{parMean}),
+and a variance=100 (\code{parCovar}). The model is run 100 times (\code{num}).
+<<>>=
+print(system.time(
+Sens2 <- sensRange(parms = pars, func = O2fun, dist = "norm",
+           num = 100, parMean = c(cons = 80), parCovar = 100)
+))
+@
+The results can be plotted in two ways:
+<<label=sens, include=FALSE>>=
+par(mfrow = c(1, 2))
+plot(Sens2, xyswap = TRUE, xlab = "O2",
+     ylab = "depth, cm", main = "Sensitivity runs")
+plot(summary(Sens2), xyswap = TRUE, xlab = "O2",
+     ylab = "depth, cm", main = "Sensitivity ranges")
+par(mfrow = c(1, 1))
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sens,fig=TRUE,echo=FALSE>>=
+<<sens>>
+@
+\end{center}
+\caption{Results of the sensitivity run - left: all model runs, right: summary - see text for \R-code}
+\label{fig:mcmccum}
+\end{figure}
+
+\section{Local sensitivity analysis : Sensitivity functions}
+
+Local sensitivity analsysis starts by calculating the sensitivity functions
+<<>>=
+O2sens <- sensFun(func=O2fun,parms=pars)
+@
+
+The summary of these functions gives information about which parameters
+have the largest effect (univariate sensitivity):
+<<>>=
+summary(O2sens)
+@
+In bivariate sensitivity the pair-wise relationship and the correlation is estimated
+and/or plotted:
+<<label=pairs, include=FALSE>>=
+pairs(O2sens)
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=pairs,fig=TRUE,echo=FALSE>>=
+<<pairs>>
+@
+\end{center}
+\caption{pairs plot - see text for \R-code}
+\label{fig:pairs}
+\end{figure}
+
+<<>>=
+cor(O2sens[,-(1:2)])
+@
+
+Multivariate sensitivity is done by estimating the collinearity between parameter sets
+\citep{Brun}.
+<<>>=
+Coll <- collin(O2sens)
+Coll
+@
+<<label=coll, include=FALSE>>=
+plot(Coll, log = "y")
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=coll,fig=TRUE,echo=FALSE>>=
+<<coll>>
+@
+\end{center}
+\caption{collinearity - see text for \R-code}
+\label{fig:coll}
+\end{figure}
+
+\section{Fitting the model to the data}
+Assume both the oxygen flux at the upper interface and a vertical profile of
+oxygen has been measured.
+
+These are the data:
+<<>>=
+O2dat <- data.frame(x = seq(0.1, 3.5, by = 0.1),
+    y = c(279,260,256,220,200,203,189,179,165,140,138,127,116,
+          109,92,87,78,72,62,55,49,43,35,32,27,20,15,15,10,8,5,3,2,1,0))
+O2depth <- cbind(name = "O2", O2dat)        # oxygen versus depth
+O2flux  <- c(UpFlux = 170)                  # measured flux
+@
+
+First  a function is defined that returns only the required model output.
+<<>>=
+O2fun2 <- function(pars)
+{
+  derivs<-function(t, O2, pars)
+  {
+  with (as.list(pars),{
+
+    Flux <- -D*diff(c(upO2, O2, O2[n]))/dX
+    dO2  <- -diff(Flux)/dx - cons*O2/(O2 + ks)
+
+    return(list(dO2,UpFlux = Flux[1], LowFlux = Flux[n+1]))
+    })
+  }
+
+ ox <- steady.1D(y = runif(n), func = derivs, parms = pars, nspec = 1,
+                   positive = TRUE, rtol = 1e-8, atol = 1e-10)
+
+ list(data.frame(x = X, O2 = ox$y),
+      UpFlux = ox$UpFlux)
+}
+@
+
+The function used in the fitting algorithm returns an instance of type \code{modCost}.
+This is created by calling function \code{modCost} twice. First with the modeled
+oxygen profile, then with the modeled flux.
+<<>>=
+Objective <- function (P)
+{
+ Pars <- pars
+ Pars[names(P)]<-P
+ modO2 <- O2fun2(Pars)
+
+ # Model cost: first the oxygen profile
+ Cost  <- modCost(obs = O2depth, model = modO2[[1]],
+                  x = "x", y = "y")
+
+ # then the flux
+ modFl <- c(UpFlux = modO2$UpFlux)
+ Cost  <- modCost(obs = O2flux, model = modFl, x = NULL, cost = Cost)
+
+ return(Cost)
+}
+@
+
+We first estimate the identifiability of the parameters, given the data:
+<<>>=
+print(system.time(
+sF<-sensFun(Objective, parms = pars)
+))
+summary(sF)
+collin(sF)
+@
+
+The collinearity of the full set is too high, but as the oxygen diffusion coefficient
+is well known, it is left out of the fitting. The combination of the three
+remaining parameters has a low enough collinearity to enable automatic fitting.
+The parameters are constrained to be >0
+<<>>=
+collin(sF, parset = c("upO2", "cons", "ks"))
+print(system.time(
+Fit <- modFit(p = c(upO2 = 360, cons = 80, ks = 1),
+                  f = Objective, lower = c(0, 0, 0))
+                  ))
+(SFit<-summary(Fit))
+@
+We next plot the residuals
+<<label=res, include=FALSE>>=
+plot(Objective(Fit$par), xlab = "depth", ylab = "",
+       main = "residual", legpos = "top")
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=res,fig=TRUE,echo=FALSE>>=
+<<res>>
+@
+\end{center}
+\caption{residuals - see text for \R-code}
+\label{fig:res}
+\end{figure}
+
+and show the best-fit model
+<<>>=
+Pars <- pars
+Pars[names(Fit$par)] <- Fit$par
+modO2 <- O2fun(Pars)
+@
+<<label=fit, include=FALSE>>=
+plot(O2depth$y, O2depth$x, ylim = rev(range(O2depth$x)), pch = 18,
+     main = "Oxygen-fitted", xlab = "mmol/m3", ylab = "depth, cm")
+lines(modO2$O2, modO2$X)
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=fit,fig=TRUE,echo=FALSE>>=
+<<fit>>
+@
+\end{center}
+\caption{Best fit model - see text for \R-code}
+\label{fig:fit}
+\end{figure}
+
+\section{Running a Markov chain Monte Carlo}
+
+We use the parameter covariances of previous fit to update parameters, while
+the mean squared residual of the fit is use as prior fo the model variance.
+<<>>=
+Covar   <- SFit$cov.scaled * 2.4^2/3
+s2prior <- SFit$modVariance
+@
+We run an adaptive Metropolis, making sure that ks does not become negative...
+<<>>=
+print(system.time(
+MCMC <- modMCMC(f = Objective, p = Fit$par, jump = Covar,
+     niter = 1000, ntrydr = 2, var0 = s2prior, wvar0 = 1,
+     updatecov = 100, lower = c(NA, NA, 0))
+))
+MCMC$count
+@
+
+Plotting the results is similar to previous cases.
+<<label=mcmcplot, include=FALSE>>=
+plot(MCMC,Full=TRUE)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmcplot,fig=TRUE,echo=FALSE>>=
+<<mcmcplot>>
+@
+\end{center}
+\caption{MCMC plot results - see text for \R-code}
+\label{fig:mcmcp}
+\end{figure}
+
+<<label=mcmchist, include=FALSE>>=
+hist(MCMC, Full = TRUE)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmchist,fig=TRUE,echo=FALSE>>=
+<<mcmchist>>
+@
+\end{center}
+\caption{MCMC histogram results - see text for \R-code}
+\label{fig:mcmch}
+\end{figure}
+
+<<label=mcmcpairs, include=FALSE>>=
+pairs(MCMC, Full = TRUE)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmcpairs,fig=TRUE,echo=FALSE>>=
+<<mcmcpairs>>
+@
+\end{center}
+\caption{MCMC pairs plot - see text for \R-code}
+\label{fig:mcmcp2}
+\end{figure}
+or summaries can be created:
+<<>>=
+summary(MCMC)
+cor(MCMC$pars)
+@
+Note: we pass to sensRange the full parameter vector (\code{parms}) and the
+parameters sampled during the MCMC (\code{parInput}).
+<<label=mcmcran2, include=FALSE>>=
+plot(summary(sensRange(parms = pars, parInput = MCMC$par, f = O2fun, num = 500)),
+  xyswap = TRUE)
+points(O2depth$y, O2depth$x)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmcran2,fig=TRUE,echo=FALSE>>=
+<<mcmcran2>>
+@
+\end{center}
+\caption{MCMC range plot - see text for \R-code}
+\label{fig:mcmcran2}
+\end{figure}
+
+\section{Finally}
+This vignette is made with Sweave \citep{Leisch02}.
+
+\bibliography{vignettes}
+
+\end{document}

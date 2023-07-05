@@ -531,7 +531,7 @@ points(Obs, pch = 16, cex = 1.5)
 
   Haario, H., Saksman, E. and Tamminen, J., 2001. An Adaptive Metropolis
   Algorithm. Bernoulli 7, pp. 223--242.
-  doi: 10.2307/3318737.
+  \doi{10.2307/3318737}
 
   Haario, H., Laine, M., Mira, A. and Saksman, E., 2006. DRAM: Efficient
   Adaptive MCMC. Statistics and Computing, 16(4), 339--354.

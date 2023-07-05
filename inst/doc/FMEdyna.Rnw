@@ -1,0 +1,893 @@
+\documentclass[article,nojss]{jss}
+\DeclareGraphicsExtensions{.pdf,.eps}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add-on packages and fonts
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{float}
+
+
+\newcommand{\noun}[1]{\textsc{#1}}
+%% Bold symbol macro for standard LaTeX users
+\providecommand{\boldsymbol}[1]{\mbox{\boldmath $#1$}}
+
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\newcommand{\fme}{\textbf{\textsf{FME }}}
+\newcommand{\ds}{\textbf{\textsf{deSolve }}}
+\newcommand{\rs}{\textbf{\textsf{rootSolve }}}
+\newcommand{\R}{\proglang{R}}
+
+\title{\proglang{R} Package \fme: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Dynamic Simulation Model}
+
+\Plaintitle{R Package FME: Inverse Modelling, Sensitivity,
+  Monte Carlo -- Applied to a Dynamic Simulation Model}
+
+
+\Shorttitle{\fme -- Inverse Modelling, Sensitivity,
+  Monte Carlo With a Dynamic Model}
+
+
+
+\Keywords{dynamic simulation models, differential equations, fitting,
+  sensitivity, Monte Carlo, identifiability, \proglang{R}}
+
+\Plainkeywords{dynamic simulation models, differential equations, fitting,
+  sensitivity, Monte Carlo, identifiability, R}
+
+
+\author{Karline Soetaert\\
+NIOZ Yerseke\\
+The Netherlands
+}
+
+\Plainauthor{Karline Soetaert}
+
+\Abstract{ \R package \fme \citep{FME} contains functions for model
+  calibration, sensitivity, identifiability, and Monte Carlo analysis
+  of nonlinear models.
+
+  This vignette (\code{vignette("FMEdyna")}) applies the functions to
+  a dynamic simulation model, solved with integration routines from
+  package \pkg{deSolve}.  A similar vignette, (\code{vignette("FMEsteady")}),
+  applies \fme to a partial differential equation, solved with a
+  steady-state solver from package \pkg{rootSolve}. A third vignette
+  (\code{vignette("FMEother")}), applies the functions to a simple
+  nonlinear model. \code{vignette("FMEmcmc")} tests the Markov chain
+  Monte Carlo (MCMC) implementation.
+}
+
+%% The address of (at least) one author should be given
+%% in the following format:
+\Address{
+  Karline Soetaert\\
+  Royal Netherlands Institute of Sea Research (NIOZ)\\
+  4401 NT Yerseke, Netherlands\\
+  E-mail: \email{karline.soetaert@nioz.nl}\\
+  URL: \url{http://www.nioz.nl}\\
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
+%% need no \usepackage{Sweave}
+%\VignetteIndexEntry{2. Sensitivity, Calibration, Identifiability, Monte Carlo Analysis of a Dynamic Simulation Model}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
+\begin{document}
+\SweaveOpts{engine = R, eps = FALSE}
+\SweaveOpts{keep.source = TRUE}
+
+<<preliminaries,echo=FALSE,results=hide>>=
+library("FME")
+options(prompt = "> ")
+options(width = 80)
+@
+
+\maketitle
+
+\section{Introduction}
+
+\R-package \fme contains part of the functions present in the software
+environment \code{FEMME} \citep{FEMME}, a \emph{F}lexible
+\emph{E}nvironment for \emph{M}athematically \emph{M}odel\-ling the
+\emph{E}nvironment. \code{FEMME} was written in FORTRAN. \fme is --
+obviously -- written in \R.
+
+Although \fme can work with many types of functions, it is mainly
+meant to be used with models that are written as (a system of)
+differential equations (ordinary or partial), which are solved either
+with routines from package \code{deSolve} \citep{deSolve}, which
+integrate the model in time, or from package \code{rootSolve}
+\citep{rootSolve} which estimate steady-state conditions.  With \fme
+it is possible to:
+
+\begin{itemize}
+\item perform local and global sensitivity analysis \citep{Brun,
+    Soetaert08},
+\item perform parameter identifiability analysis \citep{Brun},
+\item fit a model to data,
+\item run a Markov chain Monte Carlo \cite[MCMC, ][]{Haario06}.
+\end{itemize}
+
+Most of these functions have suitable methods for printing,
+visualising output etc.  In addition, there are functions to generate
+parameter combinations corresponding to a certain distribution.  In
+this document a -- very quick -- survey of the functionality is
+given, based on a simple model from \citep{Soetaert08}.
+
+\section{The example model}
+
+The example model describes growth of bacteria (\code{BACT}) on a
+substrate (\code{SUB}) in a closed vessel. The model equations are:
+
+\begin{align*}
+\frac{dBact}{dt} &= gmax \cdot eff \cdot \frac{Sub}{Sub+ks}\cdot Bact - d \cdot Bact - r_B \cdot Bact\\
+\frac{dSub}{dt} &=- gmax \cdot \frac{Sub}{Sub+ks}\cdot Bact + d \cdot Bact
+\end{align*}
+
+where the first, second and third term of the rate of change of
+\code{Bact} is growth of bacteria, death and respiration respectively.
+In \R, this model is implemented and solved as follows (see help pages
+of \ds). First the parameters are defined, as a list (a vector would
+also do)
+
+<<>>=
+pars <- list(gmax = 0.5, eff = 0.5,
+              ks = 0.5, rB = 0.01, dB = 0.01)
+@
+
+The model function \code{solveBact} takes as input the parameters and
+the time sequence at which output is wanted.  Within this function,
+\code{derivs} is defined, which is the \emph{derivative} function,
+called at each time step by the solver. It takes as input the current
+time (\code{t}), the current values of the state variables
+(\code{state}) and the parameters (\code{pars}). It returns the rate
+of change of the state variables, packed as a list.  Also within
+function \code{solveBact}, the state variables are given an initial
+condition (\code{state}) and the model is solved by integration, using
+function \code{ode} from package \code{deSolve}. The results of the
+integration are returned, packed as a data.frame.
+
+<<>>=
+solveBact <- function(pars, times=seq(0,50,by=0.5)) {
+  derivs <- function(t, state, pars) { # returns rate of change
+    with(as.list(c(state, pars)), {
+
+      dBact <-  gmax*eff*Sub/(Sub+ks)*Bact - dB*Bact - rB*Bact
+      dSub  <- -gmax    *Sub/(Sub+ks)*Bact + dB*Bact
+      return(list(c(dBact, dSub), TOC = Bact + Sub))
+    })
+ }
+ state   <- c(Bact = 0.1, Sub = 100)
+ ## ode solves the model by integration...
+ return(ode(y = state, times = times, func = derivs, parms = pars))
+}
+@
+
+The model is then solved by calling \code{solveBact} with the default
+parameters:
+
+<<>>=
+out <- solveBact(pars)
+@
+
+and output plotted as:
+
+<<label=ode,include=FALSE>>=
+matplot(out[,1], out[,-1], type = "l", lty = 1:3, lwd = c(2, 2, 1),
+   col = "black", xlab = "time, hour", ylab = "mol C/m3")
+
+legend("topright", c("Bacteria", "Glucose", "TOC"),
+       lty = 1:3, lwd = c(2, 2, 1))
+@
+
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=odefig,fig=TRUE,echo=FALSE>>=
+<<ode>>
+@
+\end{center}
+\caption{Solution of the simple bacterial growth model - see text for \R-code}
+\label{fig:ode}
+\end{figure}
+
+\section{Global sensitivity}
+
+In global sensitivity analysis, certain parameters are changed over a
+large range, and the effect on certain model ouput variables assessed.
+In \fme this is done via function \code{sensRange}.
+
+First the sensitivity parameters are defined and a distribution is
+assigned; here we specify the minimum and maximum values of three
+parameters in a \code{data.frame}:
+
+<<>>=
+parRanges <- data.frame(min = c(0.4, 0.4, 0.0), max = c(0.6, 0.6, 0.02))
+rownames(parRanges) <- c("gmax", "eff", "rB")
+parRanges
+@
+
+Then we estimate the sensitivity to one parameter, \code{rB}
+(parameter 3), varying its values according to a regular grid
+(\code{dist=grid}). The effect of that on sensitivitiy variables
+\code{Bact} and \code{Sub} are estimated.  To do this, the model is
+run 100 times (\code{num=100}). The \code{system.time} is printed (in
+seconds):
+
+<<>>=
+tout    <- 0:50
+print(system.time(
+sR <- sensRange(func = solveBact, parms = pars, dist = "grid",
+       sensvar = c("Bact", "Sub"), parRange = parRanges[3,], num = 50)
+))
+head(summary(sR))
+@
+
+The results are represented as a data.frame, containing summary
+information of the value of the sensitivity variable (\code{var}) at
+each time step (\code{x}).  It is relatively simple to plot the
+ranges, either as $\min \pm sd$ or using quantiles:
+
+<<label=sens,include=FALSE>>=
+summ.sR <- summary(sR)
+par(mfrow=c(2, 2))
+plot(summ.sR, xlab = "time, hour", ylab = "molC/m3",
+    legpos = "topright", mfrow = NULL)
+plot(summ.sR, xlab = "time, hour", ylab = "molC/m3", mfrow = NULL,
+     quant = TRUE, col = c("lightblue", "darkblue"), legpos = "topright")
+mtext(outer = TRUE, line = -1.5, side = 3, "Sensitivity to rB", cex = 1.25)
+par(mfrow = c(1, 1))
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sensfig,fig=TRUE,echo=FALSE>>=
+<<sens>>
+@
+\end{center}
+\caption{Sensitivity range for one parameter - see text for \R-code}
+\label{fig:sens}
+\end{figure}
+
+Sensitivity ranges can also be estimated for a combination of
+parameters. Here we use all 3 parameters, and select the latin hypercube
+sampling algorithm.
+
+<<>>=
+Sens2 <- summary(sensRange(func = solveBact, parms = pars,
+   dist = "latin", sensvar = "Bact", parRange = parRanges, num = 100))
+@
+
+<<label=sens2,include=FALSE>>=
+plot(Sens2, main = "Sensitivity gmax,eff,rB", xlab = "time, hour",
+   ylab = "molC/m3")
+@
+
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sensfig2,fig=TRUE,echo=FALSE>>=
+<<sens2>>
+@
+\end{center}
+\caption{Sensitivity range for a combination of parameters - see text
+  for \R-code}
+\label{fig:sens2}
+\end{figure}
+
+\section{Local sensitivity}
+
+In local sensitivity, the effect of a parameter value in a very small
+region near its nominal value is estimated.  The methods implemented
+in \fme are based on \citet{Brun} which should be consulted for
+details.  They are based on so-called ``sensitivity functions''.
+
+\subsection{Sensitivity functions}
+
+Sensitivity functions are generated with \code{sensFun}, and estimate
+the effect of a selection of parameters (here all parameters are
+selected) on a selection of variables (here only \code{Bact}).
+
+<<>>=
+SnsBact<- sensFun(func = solveBact, parms = pars,
+                 sensvar = "Bact", varscale = 1)
+head(SnsBact)
+@
+
+They can easily be plotted (Fig. \ref{fig:sens2}):
+
+<<label=sfun, include=FALSE>>=
+plot(SnsBact)
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sfunfig,fig=TRUE,echo=FALSE>>=
+<<sfun>>
+@
+\end{center}
+\caption{Sensitivity functions - see text for \R-code}
+\label{fig:sfun}
+\end{figure}
+
+\subsection{Univariate sensitivity}
+
+Based on the sensitivity functions, several summaries are generated,
+which allow to rank the parameters based on their influence on the
+selected variables.
+
+<<>>=
+summary(SnsBact)
+@
+Here
+\begin{itemize}
+  \item L1 is the L1-norm, $\sum{|S_{ij}|}/n$
+  \item L2 is the L2-norm, $\sqrt{\sum(S_{ij}^2)/n}$
+  \item Mean: the mean of the sensitivity functions
+  \item Min: the minimal value of the sensitivity functions
+  \item Max: the maximal value of the sensitivity functions
+\end{itemize}
+
+Sensitivity analysis can also be performed on several variables:
+
+<<>>=
+summary(sensFun(solveBact, pars, varscale = 1), var = TRUE)
+@
+
+\subsection{Bivariate sensitivity}
+
+The pairwise relationships in parameter sensitivity is easily assessed
+by plotting the sensitivity functions using \R-function \code{pairs},
+and by calculating the correlation.
+
+<<>>=
+cor(SnsBact[ ,-(1:2)])
+@
+
+<<label=pairs,include=FALSE>>=
+pairs(SnsBact)
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=pairsfig,fig=TRUE,echo=FALSE>>=
+<<pairs>>
+@
+\end{center}
+\caption{Pairs of sensitivity functions - see text for \R-code}
+\label{fig:pairs}
+\end{figure}
+
+\subsection{Monte Carlo runs}
+
+Function \code{modCRL} runs a Monte Carlo simulation, outputting single variables.
+
+This is in contrast to \code{sensRange} which outputs vectors of variables, e.g.
+a time-sequence, or a spatially-dependent variable.
+
+It can be used to test what-if scenarios. Here it is used to calculate the
+final concentration of  bacteria and substrate as a function of the maximal
+growth rate.
+<<>>=
+SF <- function (pars) {
+  out <- solveBact(pars)
+  return(out[nrow(out), 2:3])
+}
+CRL <- modCRL(func = SF, parms = pars, parRange = parRanges[1,])
+@
+
+<<label=crl,include=FALSE>>=
+plot(CRL)
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=crlfig,fig=TRUE,echo=FALSE>>=
+<<crl>>
+@
+\end{center}
+\caption{Monte carlo analysis - see text for \R-code}
+\label{fig:crl}
+\end{figure}
+
+Monte Carlo methods can also be used to see how parameter uncertainties
+propagate, i.e. to derive the distribution of output variables as a
+function of parameter distribution.
+
+Here the effect of the parameters \code{gmax} and \code{eff} on final
+bacterial concentration is assessed. The parameter values are generated
+according to a multi-normal distribution; they are positively correlated
+(with a correlation = 0.63).
+
+<<>>=
+CRL2 <- modCRL(func = SF, parms = pars, parMean = c(gmax = 0.5, eff = 0.7),
+               parCovar = matrix(nr = 2, data = c(0.02, 0.02, 0.02, 0.05)),
+               dist = "norm", sensvar = "Bact", num = 150)
+@
+<<label=crl2,include=FALSE>>=
+pairs(CRL2)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=crl2fig,fig=TRUE,echo=FALSE>>=
+<<crl2>>
+@
+\end{center}
+\caption{Multivariate Monte Carlo analysis - see text for \R-code}
+\label{fig:crl2}
+\end{figure}
+
+
+\section{Multivariate sensitivity analysis}
+
+Based on the sensitivity functions of model variables to selection of
+parameters, function \code{collin} calculates the \emph{collinearity}
+or \emph{identifiability} of sets of parameters.
+
+<<>>=
+Coll <- collin(SnsBact)
+Coll
+Coll [Coll[,"collinearity"] < 20 & Coll[ ,"N"] == 4, ]
+collin(SnsBact, parset = 1:5)
+@
+
+The higher the value, the larger the (approximate) linear
+dependence. This function is mainly useful to derive suitable
+parameter sets that can be calibrated based on data (see next
+section).
+
+\section{Fitting the model to data}
+
+\subsection{Data structures}
+
+There are two modes of data input:
+
+\begin{itemize}
+\item \emph{data table (long) format}; this is a two to four column
+  data.frame that contains the \code{name} of the observed variable
+  (always the FIRST column), the (optional) \code{value of the
+    independent variable} (default = "time"), the \code{value of the
+    observation} and the (optional) \code{value of the error}.
+\item \emph{crosstable format}; this is a matrix, where each column
+  denotes one dependent (or independent) variable; the column name is
+  the name of the observed variable.
+\end{itemize}
+
+As an example of both formats consider the data, called \code{Dat}
+consisting of two observed variables, called "Obs1" and "Obs2", both
+containing two observations, at time 1 and 2:
+
+\begin{table}[H]
+\center
+\begin{tabular}{llll}
+  name    & time   &   val & err \\ \hline
+  Obs1    & 1      &   50  & 5   \\
+  Obs1    & 2      &  150  & 15  \\
+  Obs2    & 1      &  1    & 0.1 \\
+  Obs2    & 2      &  2    & 0.2 \\  \hline
+\end{tabular}
+\end{table}
+
+for the long format and
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+
+ time   &   Obs1 & Obs2 \\  \hline
+   1    &  50    & 1    \\
+   2    &  150   & 2    \\  \hline
+
+
+\end{tabular}
+\end{table}
+
+for the crosstable format. Note, that in the latter case it is not
+possible to provide separate errors per data point.
+
+\subsection{The model cost function}
+
+\fme function \code{modCost} estimates the ``model cost'', which the sum
+of (weighted) squared residuals of the model versus the data.  This
+function is central to parameter identifiability analysis,
+model fitting or running a Markov chain Monte Carlo.
+
+Assume the following model output (in a matrix or \code{data.frame}
+called \code{Mod}:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+ time     & Obs1 & Obs2 \\ \hline
+   0      &  4   & 1 \\
+   1      &  4   & 2 \\
+   2      &  4   & 3 \\
+   3      &  4   & 4 \\  \hline
+
+\end{tabular}
+\end{table}
+
+Then the modCost will give:
+
+<<>>=
+Dat<- data.frame(name = c("Obs1", "Obs1", "Obs2", "Obs2"),
+             time = c(1, 2, 1, 2), val = c(50, 150, 1, 2),
+             err = c(5, 15, 0.1, 0.2))
+Mod <- data.frame(time = 0:3, Obs1 = rep(4, 4), Obs2 = 1:4)
+modCost(mod = Mod, obs = Dat, y = "val")
+@
+
+in case the residuals are not weighed and
+
+<<>>=
+modCost(mod = Mod, obs = Dat, y = "val", err = "err")
+@
+
+in case the residuals are weighed by 1/error.
+
+\subsection{Model fitting}
+
+Assume the following data set (in crosstable (wide) format):
+
+<<>>=
+Data <- matrix (nc=2,byrow=2,data=
+c(  2,  0.14,    4,  0.21,    6,  0.31,    8,  0.40,
+   10,  0.69,   12,  0.97,   14,  1.42,   16,  2.0,
+   18,  3.0,    20,  4.5,    22,  6.5,    24,  9.5,
+   26, 13.5,    28, 20.5,    30,  29 , 35, 65, 40, 61)
+)
+colnames(Data) <- c("time", "Bact")
+head(Data)
+@
+
+and assume that we want to fit the model parameters \code{gmax} and
+\code{eff} to these data.
+
+We first define an objective function that returns the residuals of
+the model versus the data, as estimated by \code{modcost}.  Input to
+the function are the current values of the parameters that need to be
+finetuned and their names (or position in \code{par}).
+
+<<>>=
+Objective <- function(x, parset = names(x)) {
+  pars[parset] <- x
+  tout    <- seq(0, 50, by = 0.5)
+  ## output times
+  out <- solveBact(pars, tout)
+  ## Model cost
+  return(modCost(obs = Data, model = out))
+}
+@
+
+First it is instructive to establish which parameters can be identified
+based on the data set.  We assess that by means of the identifiability
+function \code{collin}, selecting only the output variables at the
+instances when there is an observation.
+
+<<>>=
+Coll <- collin(sF <- sensFun(func = Objective, parms = pars, varscale = 1))
+Coll
+@
+
+The larger the collinearity value, the less identifiable the parameter
+based on the data.
+In general a collinearity value less than about 20 is "identifiable".
+Below we plot the collinarity as a function of the number of
+parameters selected.  We add a line at the height of 20, the critical
+value:
+
+<<label=coll, include=FALSE>>=
+plot(Coll, log = "y")
+abline(h = 20, col = "red")
+@
+
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=collfig,fig=TRUE,echo=FALSE>>=
+<<coll>>
+@
+\end{center}
+\caption{Collinearity analysis - see text for \R-code}
+\label{fig:coll}
+\end{figure}
+
+The collinearity index for parameters \code{gmax} and \code{eff} is small enough
+to enable estimating both parameters.
+
+<<>>=
+collin(sF,parset=1:2)
+@
+
+We now use function \code{modFit} to locate the minimum. It includes
+several fitting procedures; the default one is the Levenberg-Marquardt
+algorithm.
+
+In the following example, parameters are constrained to be > 0
+
+<<>>=
+print(system.time(Fit <- modFit(p = c(gmax = 0.5, eff = 0.5),
+                  f = Objective, lower = c(0.0, 0.0))))
+summary(Fit)
+@
+
+The model is run with the original and the best-fit parameters, 
+the model cost function estimated and the model outcome compared to data.
+
+<<>>=
+init <- solveBact(pars)
+
+pars[c("gmax", "eff")] <- Fit$par
+out   <- solveBact(pars)
+
+Cost  <- modCost(obs = Data, model = out)
+Cost
+@
+
+<<label=fit,include=FALSE>>=
+plot(out, init, xlab = "time, hour", ylab = "molC/m3", lwd = 2, 
+   obs = Data, obspar = list(cex = 2, pch = 18)) 
+legend ("bottomright", lwd = 2, col = 1:2, lty = 1:2, c("fitted", "original"))
+@
+
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=fitfig,fig=TRUE,echo=FALSE>>=
+<<fit>>
+@
+\end{center}
+\caption{Fitting the model to data - see text for \R-code}
+\label{fig:fit}
+\end{figure}
+
+Finally, model residuals are plotted:
+
+<<label=res, include=FALSE>>=
+plot(Cost, xlab = "time", ylab = "", main = "residuals")
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=resfig,fig=TRUE,echo=FALSE>>=
+<<res>>
+@
+\end{center}
+\caption{Model-data residuals - see text for \R-code}
+\label{fig:res}
+\end{figure}
+
+\section{Markov chain Monte Carlo}
+
+We can use the results of the fit to run a MCMC \citep{Gelman}.
+Function \code{modMCMC} implements the delayed rejection (DR) adaptive
+Metropolis (AM) algorithm \citep{Haario06}.
+
+The \code{summary} method of the best fit returns several useful values:
+
+\begin{itemize}
+
+\item The model variance \code{modVariance} is used as the initial
+  model error variance (\code{var0}) in the MCMC.
+  In each MCMC step, \code{1/model} variance is drawn from a gamma function
+  with parameters \code{rate} and \code{shape}, calculated as:
+  \code{shape = 0.5*N * (1 + pvar0)}, and \code{rate = 0.5 * (pvar0*N*var0 + SS))} and
+  where \code{SS} is the current sum of squared residals, \code{N} is the number of
+  data points and \code{pVar0} is a weighing parameter, argument of function
+  \code{modMCMC}.
+
+\item The best-fit parameters are used as initial parameter values for
+  the MCMC (\code{p}).
+
+\item The parameter covariance returned by the \code{summary} method,
+  scaled with $2.4^2/length(p)$, gives a suitable covariance matrix,
+  for generating new parameter values (\code{jump}).
+
+\end{itemize}
+
+<<>>=
+SF<-summary(Fit)
+SF
+SF[]
+Var0 <- SF$modVariance
+covIni <- SF$cov.scaled *2.4^2/2
+MCMC <- modMCMC(p = coef(Fit), f = Objective, jump = covIni,
+              var0 = Var0, wvar0 = 1)
+@
+
+The \code{plot} method shows the trace of the parameters and, in
+\code{Full} is \code{TRUE}, also the model function.
+
+<<label=mcmcplot, include=FALSE>>=
+ plot(MCMC, Full = TRUE)
+@
+
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmcfig,fig=TRUE,echo=FALSE>>=
+<<mcmcplot>>
+@
+\end{center}
+\caption{MCMC parameter values per iteration - see text for \R-code}
+\label{fig:mcmc1}
+\end{figure}
+
+The \code{pairs} method plots both parameters as a function of one
+another:
+
+<<label=mcmcplot2, include=FALSE>>=
+pairs(MCMC)
+@
+
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=mcmcfig2,fig=TRUE,echo=FALSE>>=
+<<mcmcplot2>>
+@
+\end{center}
+\caption{Pairs plot of MCMC results. See text for \R-code}
+\label{fig:mcmc2}
+\end{figure}
+
+The MCMC output can be used in the functions from the \pkg{coda}
+package:
+
+<<>>=
+MC <- as.mcmc(MCMC$pars)
+@
+
+<<label=cumuplot, include=FALSE>>=
+cumuplot(MC)
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=cumuplot,fig=TRUE,echo=FALSE>>=
+<<cumuplot>>
+@
+\end{center}
+\caption{cumulative quantile plot from the MCMC run as from package
+  \pkg{coda} - see text for \R-code}
+\label{fig:mcmccum}
+\end{figure}
+
+
+Finally, we compare the covariances based on generated parameters with
+the ones from the fit:
+
+<<>>=
+cov(MCMC$pars)
+covIni
+@
+
+\section{Distributions}
+
+Parameter values can be generated according to 4 different
+distributions:
+
+\code{Grid, Uniform, Normal, Latinhyper}:
+
+<<label=dist, include=FALSE>>=
+par(mfrow = c(2, 2))
+Minmax <- data.frame(min = c(1, 2), max = c(2, 3))
+rownames(Minmax) <- c("par1", "par2")
+Mean   <- c(par1 = 1.5, par2 = 2.5)
+Covar  <- matrix(nr = 2, data = c(2, 2, 2, 3))
+plot(Unif(Minmax, 100), main = "Unif", xlim = c(1, 2), ylim = c(2, 3))
+plot(Grid(Minmax, 100), main = "Grid", xlim = c(1, 2), ylim = c(2, 3))
+plot(Latinhyper(Minmax, 5), main = "Latin hypercube", xlim = c(1, 2),
+     ylim = c(2, 3))
+grid()
+plot(Norm(parMean = Mean, parCovar = Covar, num = 1000),
+   main = "multi normal")
+@
+
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=distfig,fig=TRUE,echo=FALSE>>=
+<<dist>>
+@
+\end{center}
+\caption{distributions}
+\label{fig:dist}
+\end{figure}
+
+\section{Examples}
+
+Several examples are present in subdirectory examples of the package.
+They include, a.o.:
+
+\begin{itemize}
+\item \code{BODO2\_FME.R}, a 1-D model of oxygen dynamics in a river. This
+  model consists of two coupled partial differential equations, which
+  are solved to steady-state.
+\item \code{ccl4model\_FME.R}. Here the functions are applied to "ccl4model",
+  one of the models included in package \ds. This is a model that has
+  been written in \proglang{FORTRAN}.
+\item \code{Omexdia\_FME.R}. Here the functions are applied to a model
+  implemented in \pkg{simecol}, an object-oriented framework for
+  ecological modeling \citep{simecol}, more specifically in package
+  \pkg{simecolModels} \citep{simecolModels}. The omexdia model is a
+  1-D diagenetic model.
+\item \code{O2profile\_FME.R}. This contains a simple model of oxygen,
+  diffusing along a spatial gradient, with imposed upper and lower
+  boundary concentration
+\end{itemize}
+
+
+
+\section{Finally}
+
+This vignette is made with Sweave \citep{Leisch02}.
+
+\clearpage
+\begin{table*}[t]
+\caption{Summary of the functions in package FME}\label{tb:tb1}
+\centering
+\begin{tabular}{p{.25\textwidth}p{.7\textwidth}}\hline
+ Function          &Description\\
+\hline \hline
+sensFun            & Sensitivity functions                                 \\  \hline
+sensRange          & Sensitivity ranges                                    \\  \hline
+modCost            & Estimates cost functions                              \\  \hline
+modFit             & Fits a model to data                                  \\ \hline
+modMCMC            & Runs a Markov chain Monte Carlo                       \\ \hline
+collin             & Estimates collinearity based on sensitivity functions \\ \hline
+Grid, Norm, & \\
+Unif, Latinhyper & Generates parameter sets based on grid, normal, uniform or latin hypercube design         \\ \hline
+\hline
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Summary of the methods in package FME}\label{tb:tb2}
+\centering
+\begin{tabular}{p{.15\textwidth}p{.15\textwidth}p{.65\textwidth}}\hline
+Method & Function          &Description\\
+\hline \hline
+summary       & modFit  & Summary statistics, including parameter std deviations, significance, parameter correlation\\  \hline
+deviance      & modFit  & Model deviance (sum of squared residuals) \\  \hline
+coef          & modFit  & Values of fitted parameters               \\  \hline
+residuals     & modFit  & Residuals of model and data               \\  \hline
+df.residual   & modFit  & Degrees of freedom                        \\  \hline
+plot          & modFit  & Plots results of the fitting              \\  \hline
+print.summary & modFit  & Printout of model summary                 \\  \hline
+plot          & modCost & Plots model-data residuals                \\  \hline
+summary       & modMCMC & Summary statistics of sampled parameters  \\  \hline
+plot          & modMCMC & Plots all sampled parameters              \\  \hline
+pairs         & modMCMC & Pairwise plots all sampled parameters     \\  \hline
+hist          & modMCMC & Histogram of all sampled parameters       \\  \hline
+summary       & modCRL  & Summary statistics of monte carlo variables  \\  \hline
+plot          & modCRL  & Plots Monte Carlo variables               \\  \hline
+pairs         & modCRL  & Pairwise plots of Monte Carlo variables   \\  \hline
+hist          & modCRL  & Histogram of Monte Carlo variables        \\  \hline
+summary       & sensFun & Summary statistics of sensitivity functions   \\  \hline
+plot          & sensFun & Plots sensitivity functions               \\  \hline
+pairs         & sensFun & Pairwise plots of sensitivity functions   \\  \hline
+print.summary & sensFun & Prints summary of sensitivity functions   \\  \hline
+plot.summary  & sensFun & Plots summary of sensitivity functions    \\  \hline
+summary       & sensRange & Summary statistics of sensitivity range \\  \hline
+plot          & sensRange & Plots sensitivity ranges                \\  \hline
+plot.summary  & sensRange & Plots summary of sensitivity ranges     \\  \hline
+print         & collin  & Prints collinearity results               \\  \hline
+plot          & collin  & Plots collinearity results                \\  \hline
+
+\hline
+\end{tabular}
+\end{table*}
+
+\clearpage
+\bibliography{vignettes}
+
+\end{document}

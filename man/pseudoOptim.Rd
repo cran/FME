@@ -11,7 +11,7 @@
     of parameters over which minimization is to take place. It should return
     a scalar result, the model cost, e.g the sum of squared residuals.}
   \item{p }{initial values of the parameters to be optimised.}
-  \item{... }{arguments passed to funtion \code{f}.}
+  \item{... }{arguments passed to function \code{f}.}
   \item{lower }{minimal values of the parameters to be optimised; these
     must be specified; they cannot be -Inf.}
   \item{upper }{maximal values of the parameters to be optimised; these
@@ -24,7 +24,7 @@
   \item{cost }{the model cost, or function evaluation associated to the
     optimised parameter values, i.e. the minimal cost.}
   \item{iterations}{the number of iterations performed.}
-    and if control\$verbose is TRUE:
+    and if \code{control$verbose} is TRUE:
   \item{poppar }{all parameter vectors remaining in the population, matrix
     of dimension (npop,length(par)).}
   \item{popcost }{model costs associated with all population parameter vectors,

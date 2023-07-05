@@ -1,9 +1,10 @@
 citHeader("To cite FME in publications use:")
 
-citEntry(entry = "Article",
+bibentry(
+  bibtype      = "Article",
   title        = "Inverse Modelling, Sensitivity and Monte Carlo Analysis in {R} Using Package {FME}",
-  author       = personList(as.person("Karline Soetaert"),
-                   as.person("Thomas Petzoldt")),
+  author       = c(person("Karline Soetaert"),
+                   person("Thomas Petzoldt")),
   journal      = "Journal of Statistical Software",
   year         = "2010",
   volume       = "33",

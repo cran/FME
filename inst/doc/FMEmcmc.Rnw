@@ -1,0 +1,815 @@
+\documentclass[article,nojss]{jss}
+\DeclareGraphicsExtensions{.pdf,.eps}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Add-on packages and fonts
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{float}
+
+
+\newcommand{\noun}[1]{\textsc{#1}}
+%% Bold symbol macro for standard LaTeX users
+\providecommand{\boldsymbol}[1]{\mbox{\boldmath $#1$}}
+
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\newcommand{\fme}{\textbf{\textsf{FME }}}
+\newcommand{\ds}{\textbf{\textsf{deSolve }}}
+\newcommand{\rs}{\textbf{\textsf{rootSolve }}}
+\newcommand{\R}{\proglang{R}}
+\title{\proglang{R} Package \fme: Tests of the Markov Chain Monte Carlo Implementation}
+\Plaintitle{R Package FME: Tests of the Markov Chain Monte Carlo Implementation}
+\Shorttitle{Tests of the MCMC Implementation}
+
+\Keywords{Markov chain Monte Carlo, delayed rejection, adapative Metropolis,
+MCMC, DRAM,  \proglang{R}}
+
+\Plainkeywords{Markov chain Monte Carlo, delayed rejection, adapative Metropolis,
+MCMC, DRAM,  R}
+
+
+\author{Karline Soetaert\\
+NIOZ Yerseke\\
+The Netherlands
+\And
+Marko Laine \\
+Finnish Meteorological Institute\\
+Finland
+}
+
+\Plainauthor{Karline Soetaert and Marko Laine}
+
+\Abstract{This vignette tests the Markov chain Monte Carlo (MCMC) implementation
+of \R package \fme \citep{FME}.
+
+It includes the delayed rejection and adaptive Metropolis algorithm \citep{Haario06}}
+
+%% The address of (at least) one author should be given
+%% in the following format:
+\Address{
+  Karline Soetaert\\
+  Royal Netherlands Institute of Sea Research (NIOZ)\\
+  4401 NT Yerseke, Netherlands\\
+  E-mail: \email{karline.soetaert@nioz.nl}\\
+  URL: \url{http://www.nioz.nl}\\
+  \\
+  Marko Laine\\
+  Finnish Meteorological Institute\\
+  P.O. Box 503\\
+  FI-00101 Helsinki\\
+  Finland\\
+  E-mail: \email{marko.laine@fmi.fi}
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% R/Sweave specific LaTeX commands.
+%% need no \usepackage{Sweave}
+%\VignetteIndexEntry{3. Tests of the Markov Chain Monte Carlo Implementation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Begin of the document
+\begin{document}
+\SweaveOpts{engine=R,eps=FALSE}
+\SweaveOpts{keep.source=TRUE}
+
+<<preliminaries,echo=FALSE,results=hide>>=
+library("FME")
+options(prompt = "> ")
+options(width=70)
+@
+
+\maketitle
+
+\section{Introduction}
+Function \code{modMCMC} from package \fme \citep{FME}
+implements a Markov chain Monte Carlo
+(MCMC) algorithm using a delayed rejection and adaptive Metropolis procedure
+\citep{Haario06}.
+
+In this vignette , the DRAM MCMC function is tested  on several functions.
+
+\begin{itemize}
+  \item Sampling from a normal distribution, using different priors
+  \item Sampling from a log-normal distribution
+  \item Sampling from a curvilinear ("banana") function \citep{Laine}
+  \item A simple chemical model, fitted to a data series \citep{Haario06}
+  \item A nonlinear monod function, fitted to a data series.
+\end{itemize}
+
+Other examples of \fme functions (including \code{modMCMC}) are in the
+following vignettes:
+\begin{itemize}
+\item "FMEdyna", FMEs functions applied to a dynamic ordinary differential
+  equation model
+\item "FMEsteady", applied to a steady-state solution of a partial differential
+  equation
+\end{itemize}
+
+\section{Function modMCMC}
+\subsection{The Markov chain Monte Carlo method}
+The implemented MCMC method is designed to be applied to nonlinear models,
+and taking into account both the uncertainty in the model parameters and in
+the model output.
+
+Consider observations y and a model f, that depend on parameters $\theta$ and
+independent variables $x$. Assuming additive, independent Gaussian errors with
+an unknown variance $\sigma^2$:
+
+\[
+y=f(x,\theta) + \xi \]
+where
+\[
+\xi \sim N(0,I \sigma^2)
+\]
+For simplicity we assume that the prior distribution for $\theta$ is Gaussian:
+\[\theta_i \sim N(v_i,\mu_i)\]
+while for the reciprocal of the error variance $1/\sigma^2$, a Gamma
+distribution is used as a prior:
+\[
+p(\sigma^{-2}) \sim \Gamma\left(\frac{n_0}{2},\frac{n_0}{2}S_0^2\right).
+\]
+
+The posterior for the parameters will be estimated as:
+  \[
+  p(\theta | y,\sigma^2)\propto \exp\left(-0.5\left(\frac{SS(\theta)}{\sigma^2}
+  +SS_{pri}(\theta)\right)\right)
+  \]
+  and where $\sigma^2$ is the error variance, SS is the sum of squares
+  function \[SS(\theta)=\sum(y_i-f(\theta)_i)^2\] and
+  \[SS_{pri}(\theta)=\sum_i{\left(\frac{\theta_i-v_i}{\mu_i}\right)^2}.\]
+
+In the above, the sum of squares functions ($SS(\theta)$)
+are defined for Gaussian likelihoods. For a general likelihood
+function the sum-of-squares corresponds to twice the log likelihood,
+\[SS(\theta) = -2 \log(p(y|\theta))\].
+This is how the function value (\code{f}, see below) should be specified.
+
+Similarly, to obtain a general non-Gaussian prior for the parameters $\theta$
+(i.e. $SS_{pri}(\theta)$)
+minus twice the log of the prior density needs to be calculated.
+
+If non-informative priors are used, then $SS_{pri}(\theta)$=0.
+
+\subsection{Arguments to function modMCMC}
+The default input to \code{modMCMC} is:
+\begin{verbatim}
+modMCMC(f, p, ..., jump=NULL, lower=-Inf, upper=+Inf, prior=NULL,
+  var0 = NULL, wvar0 = NULL, n0= NULL, niter=1000, outputlength = niter,
+  burninlength=0, updatecov=niter, covscale = 2.4^2/length(p),
+  ntrydr=1, drscale=NULL, verbose=TRUE)
+\end{verbatim}
+with the following arguments (see help page for more information):
+\begin{itemize}
+\item \code{f}, the sum-of-squares function to be evaluated, $SS(\theta)$
+\item \code{p}, the initial values of the parameters $\theta$ to be sampled
+\item \code{...}, additional arguments passed to function \code{f}
+\item \code{jump}, the proposal distribution (this generates new parameter values)
+\item \code{prior}, the parameter prior, $SS_{pri}(\theta)$
+\item \code{var0, wvar0, n0}, the initial model variance and weight of
+  the initial model variance, where \code{n0=wvar0*n}, n=number of observations.
+\item \code{lower,upper}, lower and upper bounds of the parameters
+\item \code{niter, outputlength, burninlength}, the total number of iterations,
+  the numer of iterations kept in output, and the
+  number of initial iterations removed from the output.
+\item \code{updatecov, covscale}, arguments for the adaptation of the proposal
+  covariance matrix (\code{AM}-part of the algorithm).
+\item \code{ntrydr, drscale}, delayed rejection (\code{DR}) arguments.
+\end{itemize}
+
+
+\clearpage
+\section{Sampling from a normal distribution}
+
+In the first example, function \code{modMCMC} is used to sample from a normal
+distribution, with mean = 10 and standard deviation = 1. We use this simple
+example mainly for testing the algorithm, and to show various ways of
+defining parameter priors.
+
+In this example, the error variance of the model is 0 (the default).
+
+We write a function, \code{Nfun} that takes as input the parameter value and
+that returns 2 times the log of the normal likelihood.
+<<>>=
+mu  <- 10
+std <- 1
+
+Nfun <- function(p)
+  -2*log(dnorm(p, mean = mu, sd = std))
+@
+The proposal covariance is assumed to be 5.
+
+\subsection{Noninformative prior}
+In the first run, a noninformative prior parameter distribution is
+used. 2000 iterations are produced; the initial parameter value is taken as 9.5.
+
+<<>>=
+MCMC <- modMCMC (f = Nfun, p = 9.5, niter = 2000, jump = 5)
+@
+It is more efficient to update the proposal distribution, e.g. every
+10 iterations:
+<<>>=
+MCMC <- modMCMC (f = Nfun, p = 9.5, niter = 2000, jump = 5, updatecov = 10)
+summary(MCMC)
+@
+
+\subsection{Noninformative prior, lower bound imposed}
+In the second run, the sampled parameters are restricted to be > 9
+(\code{lower=9}):
+<<>>=
+MCMC2 <- modMCMC (f = Nfun, p = 9.5, lower = 9, niter = 2000, jump = 5,
+  updatecov = 10)
+summary(MCMC2)
+@
+\subsection{A normally distributed prior}
+Finally, it is assumed that the prior for the model parameter is itself
+a normal distribution, with mean 8 and standard devation 1:
+$pri(\theta) \sim N(8,1)$.
+
+The posterior for this
+problem is a normal distribution with mean = 9, standard deviation of 0.707.
+<<>>=
+pri <- function(p) -2*log(dnorm(p, 8, 1))
+MCMC3 <- modMCMC (f = Nfun, p = 9.5, niter = 2000, jump = 5,
+  updatecov = 10, prior = pri)
+summary(MCMC3)
+@
+
+The number of accepted runs is increased by toggling on delayed
+rejection; at most 2 delayed rejections steps are tried (\code{ntrydr=2}):
+<<>>=
+summary(MCMC4 <- modMCMC(f = Nfun, p = 1, niter = 2000, jump = 5,
+  updatecov = 10, prior = pri, ntrydr = 2))
+
+MCMC4$count
+@
+
+Finally, we plot a histogram of the three MCMC runs, and end by plotting the trace
+of the last run (figure \ref{fig:hist}).
+<<label=hist1, include=FALSE>>=
+par(mfrow = c(2,2))
+hist(MCMC$pars, xlab="x", freq = FALSE, main = "unconstrained", xlim = c(6, 14))
+hist(MCMC2$pars, xlab="x", freq = FALSE, main = "x>9", xlim = c(6, 14))
+hist(MCMC3$pars, xlab="x", freq = FALSE, main = "pri(x)~N(8,1)", xlim = c(6, 14))
+plot(MCMC3, mfrow = NULL, main = "AM")
+mtext(outer = TRUE, line = -1.5, "N(10,1)", cex = 1.25)
+@
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=hist1,fig=TRUE,echo=FALSE>>=
+<<hist1>>
+@
+\end{center}
+\caption{Simulated draws of a normal distribution (N(10,1)) with different
+prior parameter distributions - see text for \R-code}
+\label{fig:hist}
+\end{figure}
+
+\clearpage
+\section{Sampling from a lognormal distribution}
+In the second example, function \code{modMCMC} is used to sample from a
+3-variate log-normal distribution, with mean = 1,2,3, and standard
+deviation = 0.1.
+
+We write a function that has as input the parameter values (a 3-valued vector)
+and that returns 2 times the lognormal likelihood.
+<<>>=
+mu  <- 1:4
+std <- 1
+
+NL <- function(p)  {
+  -2*sum(log(dlnorm(p, mean = mu, sd = std)))
+}
+@
+The proposal covariance is assumed to be the identity matrix with a
+variance of 5. The simulated chain is of length 10000 (\code{niter}), but
+only 1000 are kept in the output (\code{outputlength}).
+
+<<>>=
+MCMCl <- modMCMC (f = NL, p = rep(1, 4), niter = 10000,
+  outputlength = 1000, jump = 5)
+@
+Convergence is tested by plotting the trace; in the first run convergence
+is not good (figure \ref{fig:logp1})
+<<label=logp1, include=FALSE>>=
+plot(MCMCl)
+@
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=logp1,fig=TRUE,echo=FALSE>>=
+<<logp1>>
+@
+\end{center}
+\caption{The trace of the log normal distribution -Metropolis algorithm -
+ see text for \R-code}
+\label{fig:logp1}
+\end{figure}
+
+The number of accepted runs is increased by updating the jump
+covariance matrix every 100 runs and toggling on delayed rejection.
+
+<<>>=
+MCMCl <- modMCMC (f = NL, p = rep(1, 4), niter = 5000, 
+   outputlength = 1000, jump = 5, updatecov = 100, ntrydr = 2)
+@
+Convergence of the chain is checked (figure \ref{fig:logp2}).
+<<label=logp, include=FALSE>>=
+plot(MCMCl)
+@
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=logp,fig=TRUE,echo=FALSE>>=
+<<logp>>
+@
+\end{center}
+\caption{The trace of the log normal distribution -  adaptive Metropolis -  see text for \R-code}
+\label{fig:logp2}
+\end{figure}
+The histograms show the posterior densities (figure \ref{fig:histlogp}).
+<<label=hist, include=FALSE>>=
+hist(MCMCl)
+@
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=hist,fig=TRUE,echo=FALSE>>=
+<<hist>>
+@
+\end{center}
+\caption{The histograms of the log normal distributed samples - see text for \R-code}
+\label{fig:histlogp}
+\end{figure}
+<<>>=
+MCMCl$pars <- log(MCMCl$pars)
+summary(MCMCl)
+@
+
+\clearpage
+\section{The banana}
+\subsection{The model}
+This example is from \cite{Laine}.
+
+A banana-shaped function is created by distorting a two-dimensional Gaussian
+distribution, with mean = 0 and a covariance matrix $\tau$ with unity variances
+and covariance of 0.9:
+\begin{center}
+\[
+\tau = \left[ {\begin{array}{*{20}c}
+   {1} & {0.9}  \\
+   {0.9} & {1}  \\
+\end{array}} \right].
+\]
+\end{center}
+
+The distortion is along the second-axis only and given by:
+\begin{eqnarray*}
+y_1=x_1\\
+y_2=x_2-(x_1^2+1).
+\end{eqnarray*}
+
+\subsection{R-implementation}
+First the banana function is defined.
+<<>>=
+Banana <- function (x1, x2) {
+  return(x2 - (x1^2+1))
+}
+@
+
+We need a function that estimates the probability of a multinormally
+distributed vector
+<<>>=
+pmultinorm <- function(vec, mean, Cov) {
+  diff <- vec - mean
+  ex   <- -0.5*t(diff) %*% solve(Cov) %*% diff
+  rdet   <- sqrt(det(Cov))
+  power  <- -length(diff)*0.5
+  return((2.*pi)^power / rdet * exp(ex))
+}
+@
+
+The target function returns -2 *log (probability) of the value
+<<>>=
+BananaSS <- function (p)
+{
+  P <- c(p[1], Banana(p[1], p[2]))
+  Cov <- matrix(nr = 2, data = c(1, 0.9, 0.9, 1))
+ -2*sum(log(pmultinorm(P, mean = 0, Cov = Cov)))
+}
+@
+
+The initial proposal covariance (\code{jump}) is the identity matrix with a
+variance of 5. The simulated chain is of length 2000 (\code{niter}).
+The \code{modMCMC} function prints the \% of accepted runs. More information is
+in item \code{count} of its return element.
+
+\subsection{Metropolis Hastings algorithm}
+
+The First Markov chain is generated with the simple Metropolis Hastings (MH)
+algorithm
+<<>>=
+MCMC <- modMCMC(f = BananaSS, p = c(0, 0.5), jump = diag(nrow = 2, x = 5),
+                niter = 2000)
+MCMC$count
+@
+
+\subsection{Adaptive Metropolis algorithm}
+
+Next we use the adaptive Metropolis (AM) algorithm and update the proposal every
+100 runs (\code{updatecov})
+<<>>=
+MCMC2 <- modMCMC(f = BananaSS, p = c(0, 0.5), jump = diag(nrow = 2, x = 5),
+                 updatecov = 100, niter = 2000)
+MCMC2$count
+@
+
+\subsection{Delayed Rejection algorithm}
+Then the Metropolis algorithm with delayed rejection (DR) is applied; upon rejection
+one next parameter cadidate is tried (\code{ntrydr}). (note \code{ntrydr=1} means
+no delayed rejection steps).
+<<>>=
+MCMC3 <- modMCMC(f = BananaSS, p = c(0, 0.5), jump = diag(nrow = 2, x = 5),
+                 ntrydr = 2, niter = 2000)
+MCMC3$count
+@
+\code{dr_steps} denotes the number of delayed rejection steps; \code{Alfasteps}
+is the number of times the algorithm has entered the acceptance function for
+delayed rejection.
+\subsection{Delayed Rejection Adaptive Metropolis algorithm}
+Finally the adaptive Metropolis with delayed rejection (DRAM) is used. (Here we
+also estimate the elapsed CPU time, in seconds -
+\code{print(system.time())} does this)
+<<>>=
+print(system.time(
+MCMC4 <- modMCMC(f = BananaSS, p = c(0, 0.5), jump = diag(nrow = 2, x = 5),
+                 updatecov = 100, ntrydr = 2, niter = 2000)
+))
+MCMC4$count
+@
+We plot the generated chains for both parameters and for the four runs
+in one plot (figure \ref{fig:bana}).
+Calling \code{plot} with \code{mfrow=NULL} prevents the plotting function to
+overrule these settings.
+<<label=banana, include=FALSE>>=
+par(mfrow = c(4, 2))
+par(mar = c(2, 2, 4, 2))
+plot(MCMC , mfrow = NULL, main = "MH")
+plot(MCMC2, mfrow = NULL, main = "AM")
+plot(MCMC3, mfrow = NULL, main = "DR")
+plot(MCMC4, mfrow = NULL, main = "DRAM")
+mtext(outer = TRUE, side = 3, line = -2, at = c(0.05, 0.95),
+    c("y1", "y2"), cex = 1.25)
+par(mar = c(5.1, 4.1, 4.1, 2.1))
+@
+The 2-D plots show the banana shape:
+<<label=banana2, include=FALSE>>=
+par(mfrow = c(2, 2))
+xl <- c(-3, 3)
+yl <- c(-1, 8)
+plot(MCMC$pars,  main = "MH", xlim = xl, ylim = yl)
+plot(MCMC2$pars, main = "AM", xlim = xl, ylim = yl)
+plot(MCMC3$pars, main = "DR", xlim = xl, ylim = yl)
+plot(MCMC4$pars, main = "DRAM", xlim = xl, ylim = yl)
+@
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{figure}
+\begin{center}
+<<label=banana2,fig=TRUE,echo=FALSE>>=
+<<banana2>>
+@
+\end{center}
+\caption{The bananas - see text for \R-code}
+\label{fig:bana}
+\end{figure}
+
+Finally, we test convergence to the original distribution. This can best be done
+by estimating means and covariances of the transformed parameter values.
+<<>>=
+trans <- cbind(MCMC4$pars[ ,1], Banana(MCMC4$pars[ ,1], MCMC4$pars[ ,2]))
+colMeans(trans)     # was:c(0,0)
+apply(trans, 2, sd) # was:1
+cov(trans)          # 0.9 off-diagonal
+@
+
+\clearpage
+\section{A simple chemical model}
+This is an example from \citep{Haario06}. We fit two parameters
+that describe the dynamics in the following reversible chemical reaction:
+\[
+\mathrm{A} \rightleftharpoons {k_2}{k_1} \mathrm{B}.
+\]
+
+Here $k_1$ is the forward, $k_2$ the backward rate coefficient.
+
+The ODE system is written as:
+\begin{eqnarray*}
+\frac{dA}{dt}=- k_1 \cdot A + k_2 \cdot B\\
+\frac{dB}{dt}=+ k_1 \cdot A - k_2 \cdot B,\\
+\end{eqnarray*}
+ with initial values $A_0$ = 1, $B_0$ = 0.
+
+The analytical solution for this system of differential equations is given in
+\citep{Haario06}.
+
+\subsection{Implementation in R}
+
+First a function is defined that takes as input the parameters
+(\code{k}) and that returns
+the values of the concentrations A and B, at selected output times.
+
+<<>>=
+Reaction <- function (k, times)
+{
+  fac <- k[1]/(k[1]+k[2])
+  A   <- fac + (1-fac)*exp(-(k[1]+k[2])*times)
+  return(data.frame(t=times,A=A))
+}
+@
+All the concentrations were measured at the time the equilibrium was
+already reached. The data are the following:
+<<>>=
+Data     <- data.frame(
+  times = c(2,     4,     6,     8,     10   ),
+  A     = c(0.661, 0.668, 0.663, 0.682, 0.650))
+Data
+@
+We impose parameter priors to prevent the model parameters from drifting to
+infinite values. The prior is taken to be a broad Gaussian distribution
+with mean (2,4) and standard deviation = 200 for both.
+
+The prior function returns the sum of squares function (weighted sum of
+squared residuals of the parameter values with the expected value).
+<<>>=
+Prior <- function(p)
+    return( sum(((p - c(2, 4))/200)^2 ))
+@
+
+First the model is fitted to the data; we restrict the parameter values to be
+in the interval [0,1].
+<<>>=
+residual <- function(k) return(Data$A - Reaction(k,Data$times)$A)
+
+Fit <- modFit(p = c(k1 = 0.5, k2 = 0.5), f = residual, 
+              lower = c(0, 0), upper = c(1, 1))
+(sF <- summary(Fit))
+@
+
+Here the observations have additive independent Gaussian errors with unknown
+variance $\sigma^2$. As explained above, the error variance is treated as
+a 'nuisance' parameter, and a prior distribution should be specified as a
+Gamma-type distribution for its inverse.
+
+The residual error of the fit (\code{sF$modfVariance}) is used as initial
+model variance (argument \code{var0}), the scaled covariance matrix of the
+fit (\code{sF$cov.scaled}) is used as the proposal distribution
+(to generate new parameter values).
+As the covariance matrix is nearly singular this is not
+a very good approximation.
+
+The MCMC is initiated with the best-fit parameters (\code{Fit$par});
+the parameters are restricted to be positive numbers (\code{lower}).
+<<>>=
+mse <- sF$modVariance
+Cov <- sF$cov.scaled * 2.4^2/2
+
+print(system.time(
+MCMC <- modMCMC(f = residual, p = Fit$par, jump = Cov, lower = c(0, 0),
+                var0 = mse, wvar0 = 1, prior = Prior, niter = 2000)
+))
+@
+
+The initial MCMC method, using the Metropolis-Hastings, has very high acceptance
+rate, indicating that it has not at all converged; this is confirmed by plotting
+the chain (figure \ref{fig:ABMCMC})
+<<label=ABMCMC, include=FALSE>>=
+plot(MCMC, Full = TRUE)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=ABMCMC,fig=TRUE,echo=FALSE>>=
+<<ABMCMC>>
+@
+\end{center}
+\caption{Metropolis-Hastings MCMC of the chemical model - see text for \R-code}
+\label{fig:ABMCMC}
+\end{figure}
+
+Better convergence is achieved by the adaptive Metropolis, updating the proposal
+every 100 runs (figure \ref{fig:ABMCMC2})
+<<>>=
+MCMC2<- modMCMC(f = residual, p = Fit$par, jump = Cov, updatecov = 100, 
+         lower = c(0, 0), var0 = mse, wvar0 = 1, prior = Prior, niter = 2000) 
+@
+<<label=ABMCMC2, include=FALSE>>=
+plot(MCMC2, Full = TRUE)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=ABMCMC2,fig=TRUE,echo=FALSE>>=
+<<ABMCMC2>>
+@
+\end{center}
+\caption{Adaptive Metropolis MCMC of the chemical model - see text for \R-code}
+\label{fig:ABMCMC2}
+\end{figure}
+
+The correlation between the two parameters is clear (figure \ref{fig:ABMCMC3}):
+
+<<label=ABMCMC3, include=FALSE>>=
+pairs(MCMC2)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=ABMCMC3,fig=TRUE,echo=FALSE>>=
+<<ABMCMC3>>
+@
+\end{center}
+\caption{Pairs plot of the Adaptive Metropolis MCMC of the chemical model -
+  see text for \R-code}
+\label{fig:ABMCMC3}
+\end{figure}
+
+Finally, we estimate and plot the effects of the estimated parameters on
+the model output (figure \ref{fig:sr})
+
+<<>>=
+sR <- sensRange(f=Reaction,times=seq(0,10,0.1),parInput=MCMC2$pars)
+@
+
+<<label=sr, include=FALSE>>=
+plot(summary(sR), xlab = "time", ylab = "Conc")
+points(Data)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=sr,fig=TRUE,echo=FALSE>>=
+<<sr>>
+@
+\end{center}
+\caption{Output ranges induced by parameter uncertainty of the chemical model - see text for \R-code}
+\label{fig:sr}
+\end{figure}
+
+
+
+\clearpage
+\section{Fitting a nonlinear model}
+
+
+The following model:
+\begin{eqnarray*}
+y=\theta_1 \cdot \frac{x}{x+\theta_2}+\epsilon\\
+\epsilon \sim N{(0,I \sigma^2)}
+\end{eqnarray*}
+
+is fitted to two data sets
+\footnote{A similar example is also discussed in vignette ("FMEother"). Here the emphasis
+is on the MCMC method}.
+
+\subsection{Implementation in R}
+First we input the observations:
+<<>>=
+Obs <- data.frame(x=c(   28,  55,   83,  110,  138,  225,  375),   # mg COD/l
+                  y=c(0.053,0.06,0.112,0.105,0.099,0.122,0.125))   # 1/hour
+
+Obs2<- data.frame(x=c(   20,  55,   83,  110,  138,  240,  325),   # mg COD/l
+                   y=c(0.05,0.07,0.09,0.10,0.11,0.122,0.125))   # 1/hour
+
+@
+
+
+The Monod model returns a data.frame, with elements x and y :
+<<>>=
+Model <- function(p,x) return(data.frame(x = x, y = p[1]*x/(x+p[2])))
+@
+
+In function \code{Residuals}, the model residuals and sum of squares are
+estimated. In this function, \code{modCost} is called twice;
+first with data set "Obs", after which the cost function is updated with data
+set "Obs2".
+
+<<>>=
+Residuals  <- function(p) {
+   cost <- modCost(model = Model(p, Obs$x), obs = Obs, x = "x")
+   modCost(model = Model(p, Obs2$x), obs = Obs2, cost = cost, x = "x")
+}
+@
+
+This function is input to \code{modFit} which fits the model to the observations.
+<<>>=
+print(system.time(
+P      <- modFit(f = Residuals, p = c(0.1, 1))
+))
+@
+We plot the observations and best-fit line (figure \ref{fig:obs})
+<<label=obs, include=FALSE>>=
+plot(Obs, xlab = "mg COD/l", ylab = "1/hour", pch = 16, cex = 1.5)
+points(Obs2, pch = 18, cex = 1.5, col = "red")
+lines(Model(p = P$par, x = 0:375))
+@
+\setkeys{Gin}{width=0.4\textwidth}
+\begin{figure}
+\begin{center}
+<<label=obs,fig=TRUE,echo=FALSE>>=
+<<obs>>
+@
+\end{center}
+\caption{The two sets of Monod observations with best-fit line - see text for \R-code}
+\label{fig:obs}
+\end{figure}
+
+Starting from the best fit, we run several MCMC analyses.
+
+The -scaled- parameter covariances returned
+from the \code{summary} function are used as estimate of the proposal covariances
+(\code{jump}). Scaling is as in \citep{Gelman}.
+<<>>=
+Covar   <- summary(P)$cov.scaled * 2.4^2/2
+@
+
+\subsection{Equal model variance}
+In the first run, we assume that both data sets have equal model variance
+$\sigma^2$.
+
+For the initial model variance (\code{var0})
+we use the residual mean squares \code{P$ms}, returned by the \code{modFit}
+function. We give low weight to the prior (\code{wvar0=0.1})
+
+The adoptive Metropolis MCMC is run for 1000 steps; the best-fit parameter set
+(\code{P$par}) is used to initiate the chain (\code{p}).
+A lower bound (0) is imposed on the parameters (\code{lower}).
+
+<<>>=
+s2prior <- P$ms
+
+print(system.time(
+MCMC <- modMCMC(f = Residuals, p = P$par, jump = Covar, niter = 1000,
+           var0 = s2prior, wvar0 = 0.1, lower = c(0, 0))
+))
+@
+The plotted results demonstrate (near-) convergence of the chain, and
+the sampled error variance (\code{Model})(figure \ref{fig:Monmcm}).
+<<label=Monmcmc, include=FALSE>>=
+plot(MCMC, Full = TRUE)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=Monmcmc,fig=TRUE,echo=FALSE>>=
+<<Monmcmc>>
+@
+\end{center}
+\caption{The mcmc, same error variance - see text for \R-code}
+\label{fig:Monmcm}
+\end{figure}
+
+\subsection{Dataset-specific model variance}
+In the second run, a different error variance for the two data sets is used.
+
+This is simply done by using, for the initial model variance the variables
+mean squares, before they are weighted (\code{P$var_ms_unweighted}).
+<<>>=
+varprior <- P$var_ms_unweighted
+
+print(system.time(
+MCMC2 <- modMCMC(f = Residuals, p = P$par, jump = Covar, niter = 1000,
+                var0 = varprior, wvar0 = 0.1, lower = c(0, 0))
+))
+@
+
+We plot only the residual sum of squares and the error variances;
+\code{which=NULL} does that (figure \ref{fig:Monmcmc2}).
+<<label=Monmcmc2, include=FALSE>>=
+plot(MCMC2, Full = TRUE, which = NULL)
+@
+\setkeys{Gin}{width=0.8\textwidth}
+\begin{figure}
+\begin{center}
+<<label=Monmcmc2,fig=TRUE,echo=FALSE>>=
+<<Monmcmc2>>
+@
+\end{center}
+\caption{The mcmc chain, separate error variance per data set - see text for \R-code}
+\label{fig:Monmcmc2}
+\end{figure}
+The summaries for both Markov chains show only small differences.
+<<>>=
+summary(MCMC)
+summary(MCMC2)
+@
+
+If \code{var0} has the same number of elements as the number of data points,
+then distinct error variances for each data point will be estimated.
+
+\section{Finally}
+This vignette is made with Sweave \citep{Leisch02}.
+
+\bibliography{vignettes}
+
+\end{document}
