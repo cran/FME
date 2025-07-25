@@ -67,7 +67,7 @@ obsplot(x, ..., which = NULL, xyswap = FALSE, ask = NULL)
 }
 
 \seealso{
- \code{\link{print.deSolve}}, \code{\link{ode}},  \code{\link{deSolve}}  
+ \link[deSolve]{print.deSolve}, \link[deSolve]{ode}, \link[deSolve]{deSolve}  
 }
 \examples{
 
